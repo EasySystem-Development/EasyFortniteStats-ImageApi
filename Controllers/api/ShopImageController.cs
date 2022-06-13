@@ -35,9 +35,9 @@ public class ShopImageController : ControllerBase
             
             SKRect textBounds = new SKRect();
             paint.MeasureText(shop.Title, ref textBounds);
-            
-            shopTitleWidth = (int)paint.MeasureText(shop.Title);
-            canvas.DrawText(shop.Title, new SKPoint(50, 100 - textBounds.MidY), paint);
+            shopTitleWidth = (int)textBounds.Width;
+
+            canvas.DrawText(shop.Title, 50, 50 + textBounds.Height, paint);
         }
         
         // Drawing the date
@@ -52,8 +52,8 @@ public class ShopImageController : ControllerBase
             paint.MeasureText(shop.Title, ref textBounds);
 
             var textPoint = new SKPoint(
-                Math.Max(50, (int) (50 + (shopTitleWidth - paint.MeasureText(shop.Date)) / 2)), 
-                150 - textBounds.MidY);
+                Math.Max(50, (int) (50 + (shopTitleWidth - textBounds.Width) / 2)), 
+                150 + textBounds.Height);
             canvas.DrawText(shop.Date, textPoint, paint);
         }
 
@@ -73,7 +73,7 @@ public class ShopImageController : ControllerBase
                     SKRect textBounds = new SKRect();
                     paint.MeasureText(shop.Title, ref textBounds);
 
-                    canvas.DrawText(shopSection?.Name, new SKPoint(sectionLocationData.Name.X, sectionLocationData.Name.Y - textBounds.MidY), paint);
+                    canvas.DrawText(shopSection?.Name, new SKPoint(sectionLocationData.Name.X, sectionLocationData.Name.Y + textBounds.Height), paint);
                 }
             }
 
@@ -81,6 +81,22 @@ public class ShopImageController : ControllerBase
             {
                 var shopEntry = shopSection?.Entries.FirstOrDefault(x => x.Id == entryLocationData.Id);
                 
+                using (var paint = new SKPaint())
+                {
+                    paint.IsAntialias = true;
+                    paint.TextSize = 13.0f;
+                    paint.Color = SKColors.White;
+                    paint.Typeface = fortniteFont;
+                    paint.TextAlign = SKTextAlign.Center;
+            
+                    var textBounds = new SKRect();
+                    paint.MeasureText(shop.Title, ref textBounds);
+
+                    var textPoint = new SKPoint(
+                        entryLocationData.Name.X + ((int)entryLocationData.Name.Width - (int)textBounds.Width) / 2, 
+                        entryLocationData.Name.Y + textBounds.Height);
+                    canvas.DrawText(shopEntry?.Name, textPoint, paint);
+                }
             }
         }
         
