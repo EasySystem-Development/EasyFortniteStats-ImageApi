@@ -62,7 +62,6 @@ public class ShopImageController : ControllerBase
             var shopSection = shop.Sections.FirstOrDefault(x => x.Id == sectionLocationData.Id);
             if (sectionLocationData.Name != null)
             {
-                var sectionName = shop.Sections.FirstOrDefault(x => x.Id == sectionLocationData.Id)?.Name;
                 using (var paint = new SKPaint())
                 {
                     paint.IsAntialias = true;
@@ -96,6 +95,35 @@ public class ShopImageController : ControllerBase
                         entryLocationData.Name.X + ((int)entryLocationData.Name.Width - (int)textBounds.Width) / 2, 
                         entryLocationData.Name.Y + textBounds.Height);
                     canvas.DrawText(shopEntry?.Name, textPoint, paint);
+                }
+
+                using var pricePaint = new SKPaint();
+                pricePaint.IsAntialias = true;
+                pricePaint.TextSize = 10.0f;
+                pricePaint.Color = SKColors.White;
+                pricePaint.Typeface = fortniteFont;
+                pricePaint.TextAlign = SKTextAlign.Right;
+            
+                var priceTextBounds = new SKRect();
+                pricePaint.MeasureText(shop.Title, ref priceTextBounds);
+
+                var pricePoint = new SKPoint(entryLocationData.Price.X,
+                    entryLocationData.Price.Y - priceTextBounds.Height);
+                canvas.DrawText(Convert.ToString(shopEntry?.FinalPrice), pricePoint, pricePaint);
+
+                if (shopEntry?.FinalPrice != shopEntry?.RegularPrice)
+                {
+                    using var oldPricePaint = new SKPaint();
+                    oldPricePaint.IsAntialias = true;
+                    oldPricePaint.TextSize = 10.0f;
+                    oldPricePaint.Color = SKColors.White;
+                    oldPricePaint.Typeface = fortniteFont;
+                    oldPricePaint.TextAlign = SKTextAlign.Right;
+            
+                    var oldPriceTextBounds = new SKRect();
+                    oldPricePaint.MeasureText(shop.Title, ref oldPriceTextBounds);
+                    
+                    canvas.DrawText(Convert.ToString(shopEntry?.FinalPrice), , oldPricePaint);
                 }
             }
         }
