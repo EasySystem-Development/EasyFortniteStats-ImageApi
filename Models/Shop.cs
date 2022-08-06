@@ -4,6 +4,7 @@ public class Shop
 {
     public string Date { get; set; }
     public string Title { get; set; }
+    public string CreatorCodeTitle { get; set; }
     public string? CreatorCode { get; set; }
     public ShopSection[] Sections { get; set; }
 }
@@ -26,6 +27,8 @@ public class ShopEntry
     public string Name { get; set; }
     public string RarityColor { get; set; }
     public string ImageUrl { get; set; }
+    
+    public bool Special { get; set; }
 }
 
 public class ShopSectionLocationData
