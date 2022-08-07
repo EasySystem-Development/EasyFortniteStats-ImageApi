@@ -11,8 +11,9 @@ public class StatsImageController : ControllerBase
         if (!type.Equals("normal") && !type.Equals("competitive")) return BadRequest("Invalid type");
         
         using var templateBitmap = GenerateTemplate(stats, type);
+        using var bitmap = GenerateImage(stats, type, templateBitmap);
         
-        using SKImage image = SKImage.FromBitmap(templateBitmap);
+        using SKImage image = SKImage.FromBitmap(bitmap);
         using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
         return File(data.ToArray(), "image/png");
     }
@@ -26,7 +27,8 @@ public class StatsImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear();
-
+        
+        Console.WriteLine($"CB {stats.CustomBackground}");
         if (stats.CustomBackground == null)
         {
             using var backgroundPaint = new SKPaint();
@@ -41,7 +43,12 @@ public class StatsImageController : ControllerBase
         }
         else
         {
+            Console.WriteLine("Background");
             var customBackgroundBitmap = SKBitmap.Decode(stats.CustomBackground);
+            if (customBackgroundBitmap.Width != imageInfo.Width || customBackgroundBitmap.Height != imageInfo.Height)
+            {
+                customBackgroundBitmap = customBackgroundBitmap.Resize(imageInfo, SKFilterQuality.High);
+            }
             canvas.DrawBitmap(customBackgroundBitmap, 0, 0);
         }
 
@@ -304,9 +311,265 @@ public class StatsImageController : ControllerBase
 
     private SKBitmap GenerateImage(Stats stats, string type, SKBitmap template)
     {
-        var canvas = new SKCanvas(template);
+        using var canvas = new SKCanvas(template);
+        
+        using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+        using var segoeFont = SKTypeface.FromFile(@"Assets/Fonts/Segoe.ttf");
+        
+        using var namePaint = new SKPaint();
+        namePaint.IsAntialias = true;
+        namePaint.Color = SKColors.White;
+        namePaint.Typeface = segoeFont;
+        namePaint.TextSize = 64;
+        
+        using var titlePaint = new SKPaint();
+        titlePaint.IsAntialias = true;
+        titlePaint.Color = SKColors.LightGray;
+        titlePaint.Typeface = segoeFont;
+        titlePaint.TextSize = 20;
 
+        using var valuePaint = new SKPaint();
+        valuePaint.IsAntialias = true;
+        valuePaint.Color = SKColors.White;
+        valuePaint.Typeface = fortniteFont;
+        valuePaint.TextSize = 35;
+        
+        var textBounds = new SKRect();
+        
+        using var inputIcon = SKBitmap.Decode($"Assets/Images/Stats/InputTypes/{stats.InputType}.png");
+        canvas.DrawBitmap(inputIcon, 50, 50);
+        
+        namePaint.MeasureText(stats.PlayerName, ref textBounds);
+        canvas.DrawText(stats.PlayerName, 159, 58 - textBounds.Top, namePaint);
+        
+        if (stats.IsVerified)
+        {
+            using var verifiedIcon = SKBitmap.Decode("Assets/Images/Stats/Verified.png");
+            canvas.DrawBitmap(verifiedIcon, 159 + textBounds.Width + 5, 47);
+
+            var discordBoxBitmap = GenerateDiscordBox(stats.UserName ?? "???#0000");
+            canvas.DrawBitmap(discordBoxBitmap, template.Width - 30 - discordBoxBitmap.Width, 39);
+        }
+
+        if (type.Equals("competitive"))
+        {
+            valuePaint.MeasureText(stats.Arena.HypePoints, ref textBounds);
+            canvas.DrawText(stats.Arena.HypePoints, 70, 189 - textBounds.Top, valuePaint);
+            
+            using var divisionIconBitmap = SKBitmap.Decode(
+                $"Assets/Images/Stats/DivisionIcons/{stats.Arena.Division.ToString()}.png");
+            canvas.DrawBitmap(divisionIconBitmap, 219, 139);
+            
+            valuePaint.MeasureText(stats.Arena.Division.ToString(), ref textBounds);
+            canvas.DrawText(stats.Arena.Division.ToString(), 326, 189 - textBounds.Top, valuePaint);
+            
+            titlePaint.MeasureText(stats.Arena.League, ref textBounds);
+            canvas.DrawText(stats.Arena.League, 326, 215 - textBounds.Top, titlePaint);
+            
+            valuePaint.MeasureText(stats.Arena.Earning, ref textBounds);
+            canvas.DrawText(stats.Arena.Earning, 70, 319 - textBounds.Top, valuePaint);
+
+            valuePaint.MeasureText(stats.Arena.PowerRanking, ref textBounds);
+            canvas.DrawText(stats.Arena.PowerRanking, 250, 319 - textBounds.Top, valuePaint);
+
+            valuePaint.MeasureText(stats.Overall.MatchesPlayed, ref textBounds);
+            canvas.DrawText(stats.Overall.MatchesPlayed, 70, 396 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.Wins, ref textBounds);
+            canvas.DrawText(stats.Overall.Wins, 231, 396 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.WinRatio, ref textBounds);
+            canvas.DrawText(stats.Overall.WinRatio, 370, 396 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.Kills, ref textBounds);
+            canvas.DrawText(stats.Overall.Kills, 70, 473 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.KD, ref textBounds);
+            canvas.DrawText(stats.Overall.KD, 231, 473 - textBounds.Top, valuePaint);
+        }
+        else
+        {
+            valuePaint.MeasureText(stats.Overall.MatchesPlayed, ref textBounds);
+            canvas.DrawText(stats.Overall.MatchesPlayed, 70, 211 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.Wins, ref textBounds);
+            canvas.DrawText(stats.Overall.Wins, 231, 211 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.WinRatio, ref textBounds);
+            canvas.DrawText(stats.Overall.WinRatio, 370, 211 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.Kills, ref textBounds);
+            canvas.DrawText(stats.Overall.Kills, 70, 288 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Overall.KD, ref textBounds);
+            canvas.DrawText(stats.Overall.KD, 231, 288 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Playtime.Days, ref textBounds);
+            canvas.DrawText(stats.Playtime.Days, 70, 369 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Playtime.Hours, ref textBounds);
+            canvas.DrawText(stats.Playtime.Hours, 147, 369 - textBounds.Top, valuePaint);
+            
+            valuePaint.MeasureText(stats.Playtime.Minutes, ref textBounds);
+            canvas.DrawText(stats.Playtime.Minutes, 213, 369 - textBounds.Top, valuePaint);
+
+            var battlePassLevel = ((int)stats.BattlePassLevel).ToString();
+            valuePaint.MeasureText(battlePassLevel, ref textBounds);
+            canvas.DrawText(battlePassLevel, 70, 479 - textBounds.Top, valuePaint);
+
+            
+            var battlePassBarWidth = (int)(309 * (stats.BattlePassLevel - (int)stats.BattlePassLevel));
+            if (battlePassBarWidth > 0)
+            {
+                battlePassBarWidth = battlePassBarWidth < 20 ? 20 : battlePassBarWidth;
+                using var battlePassBarPaint = new SKPaint();
+                battlePassBarPaint.IsAntialias = true;
+                battlePassBarPaint.Shader = SKShader.CreateLinearGradient(
+                    new SKPoint(158, 0),
+                    new SKPoint(158 + battlePassBarWidth, 0),
+                    new[] { SKColor.Parse(stats.BattlePassLevelBarColors[0]), SKColor.Parse(stats.BattlePassLevelBarColors[1])},
+                    new float[] {0, 1},
+                    SKShaderTileMode.Repeat);
+                
+                canvas.DrawRoundRect(158, 483, battlePassBarWidth, 20, 10, 10, battlePassBarPaint);
+            }
+            
+        }
+        
+        valuePaint.MeasureText(stats.Solo.MatchesPlayed, ref textBounds);
+        canvas.DrawText(stats.Solo.MatchesPlayed, 537, 211 - textBounds.Top, valuePaint);
+
+        valuePaint.MeasureText(stats.Solo.Wins, ref textBounds);
+        canvas.DrawText(stats.Solo.Wins, 698, 211 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Solo.WinRatio, ref textBounds);
+        canvas.DrawText(stats.Solo.WinRatio, 837, 211 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Solo.Kills, ref textBounds);
+        canvas.DrawText(stats.Solo.Kills, 537, 288 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Solo.KD, ref textBounds);
+        canvas.DrawText(stats.Solo.KD, 698, 288 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Solo.Top25, ref textBounds);
+        canvas.DrawText(stats.Solo.Top25, 837, 288 - textBounds.Top, valuePaint);
+        
+        
+        valuePaint.MeasureText(stats.Duos.MatchesPlayed, ref textBounds);
+        canvas.DrawText(stats.Duos.MatchesPlayed, 1016, 211 - textBounds.Top, valuePaint);
+
+        valuePaint.MeasureText(stats.Duos.Wins, ref textBounds);
+        canvas.DrawText(stats.Duos.Wins, 1177, 211 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Duos.WinRatio, ref textBounds);
+        canvas.DrawText(stats.Duos.WinRatio, 1316, 211 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Duos.Kills, ref textBounds);
+        canvas.DrawText(stats.Duos.Kills, 1016, 288 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Duos.KD, ref textBounds);
+        canvas.DrawText(stats.Duos.KD, 1177, 288 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Duos.Top12, ref textBounds);
+        canvas.DrawText(stats.Duos.Top12, 1316, 288 - textBounds.Top, valuePaint);
+
+        
+        valuePaint.MeasureText(stats.Trios.MatchesPlayed, ref textBounds);
+        canvas.DrawText(stats.Trios.MatchesPlayed, 537, 441 - textBounds.Top, valuePaint);
+
+        valuePaint.MeasureText(stats.Trios.Wins, ref textBounds);
+        canvas.DrawText(stats.Trios.Wins, 698, 441 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Trios.WinRatio, ref textBounds);
+        canvas.DrawText(stats.Trios.WinRatio, 837, 441 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Trios.Kills, ref textBounds);
+        canvas.DrawText(stats.Trios.Kills, 537, 518 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Trios.KD, ref textBounds);
+        canvas.DrawText(stats.Trios.KD, 698, 518 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Trios.Top6, ref textBounds);
+        canvas.DrawText(stats.Trios.Top6, 837, 518 - textBounds.Top, valuePaint);
+
+        
+        valuePaint.MeasureText(stats.Squads.MatchesPlayed, ref textBounds);
+        canvas.DrawText(stats.Squads.MatchesPlayed, 1016, 441 - textBounds.Top, valuePaint);
+
+        valuePaint.MeasureText(stats.Squads.Wins, ref textBounds);
+        canvas.DrawText(stats.Squads.Wins, 1177, 441 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Squads.WinRatio, ref textBounds);
+        canvas.DrawText(stats.Squads.WinRatio, 1316, 441 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Squads.Kills, ref textBounds);
+        canvas.DrawText(stats.Squads.Kills, 1016, 518 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Squads.KD, ref textBounds);
+        canvas.DrawText(stats.Squads.KD, 1177, 518 - textBounds.Top, valuePaint);
+        
+        valuePaint.MeasureText(stats.Squads.Top6, ref textBounds);
+        canvas.DrawText(stats.Squads.Top6, 1316, 518 - textBounds.Top, valuePaint);
+
+        if (type.Equals("normal"))
+        {
+            valuePaint.MeasureText(stats.Teams.MatchesPlayed, ref textBounds);
+            canvas.DrawText(stats.Teams.MatchesPlayed, 537, 671 - textBounds.Top, valuePaint);
+
+            valuePaint.MeasureText(stats.Teams.Wins, ref textBounds);
+            canvas.DrawText(stats.Teams.Wins, 698, 671 - textBounds.Top, valuePaint);
+        
+            valuePaint.MeasureText(stats.Teams.WinRatio, ref textBounds);
+            canvas.DrawText(stats.Teams.WinRatio, 837, 671 - textBounds.Top, valuePaint);
+        
+            valuePaint.MeasureText(stats.Teams.Kills, ref textBounds);
+            canvas.DrawText(stats.Teams.Kills, 954, 671 - textBounds.Top, valuePaint);
+        
+            valuePaint.MeasureText(stats.Teams.KD, ref textBounds);
+            canvas.DrawText(stats.Teams.KD, 1115, 671 - textBounds.Top, valuePaint);
+        }
+        
         return template;
+    }
+
+    private SKBitmap GenerateDiscordBox(string username)
+    {
+        using var segoeFont = SKTypeface.FromFile(@"Assets/Fonts/Segoe.ttf");
+
+        using var discordTagTextPaint = new SKPaint();
+        discordTagTextPaint.IsAntialias = true;
+        discordTagTextPaint.Color = SKColors.White;
+        discordTagTextPaint.Typeface = segoeFont;
+        discordTagTextPaint.TextSize = 25;
+        
+        var discordTagTextBounds = new SKRect();
+        discordTagTextPaint.MeasureText(username, ref discordTagTextBounds);
+
+        var imageInfo = new SKImageInfo(Math.Min((int)discordTagTextBounds.Width + 10 + 2 * 15 + 50, 459), 62);
+        var bitmap = new SKBitmap(imageInfo);
+        using var canvas = new SKCanvas(bitmap);
+
+        using (var discordBoxPaint = new SKPaint())
+        {
+            discordBoxPaint.IsAntialias = true;
+            discordBoxPaint.Color = new SKColor(88, 101, 242);
+            
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 15, 15, discordBoxPaint);
+        }
+        
+        using var discordLogoBitmap = SKBitmap.Decode(@"Assets/Images/Stats/DiscordLogo.png");
+        canvas.DrawBitmap(discordLogoBitmap, 10,  (imageInfo.Height - discordLogoBitmap.Height) / 2);
+
+        while (discordTagTextBounds.Width + 10 + 2 * 15 + 50 > imageInfo.Width)
+        {
+            discordTagTextPaint.TextSize--;
+            discordTagTextPaint.MeasureText(username, ref discordTagTextBounds);
+        }
+        
+        canvas.DrawText(username, 10 + 15 + discordLogoBitmap.Width, 
+            imageInfo.Height / 2 - discordTagTextBounds.MidY, discordTagTextPaint);
+        
+        return bitmap;
     }
         
 }
