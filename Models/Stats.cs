@@ -9,7 +9,7 @@ public class Stats
     public bool IsVerified { get; set; }
     
     public string? UserName { get; set; }
-    public byte[]? CustomBackground { get; set; }
+    public IFormFile? CustomBackground { get; set; }
     
     public Playtime Playtime { get; set; }
     

@@ -28,7 +28,6 @@ public class StatsImageController : ControllerBase
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear();
         
-        Console.WriteLine($"CB {stats.CustomBackground}");
         if (stats.CustomBackground == null)
         {
             using var backgroundPaint = new SKPaint();
@@ -44,7 +43,7 @@ public class StatsImageController : ControllerBase
         else
         {
             Console.WriteLine("Background");
-            var customBackgroundBitmap = SKBitmap.Decode(stats.CustomBackground);
+            var customBackgroundBitmap = SKBitmap.Decode(stats.CustomBackground.OpenReadStream());
             if (customBackgroundBitmap.Width != imageInfo.Width || customBackgroundBitmap.Height != imageInfo.Height)
             {
                 customBackgroundBitmap = customBackgroundBitmap.Resize(imageInfo, SKFilterQuality.High);
@@ -60,9 +59,8 @@ public class StatsImageController : ControllerBase
             canvas.DrawRoundRect(134, 57, 5, 50, 3, 3, nameSplit);
         }
         
-        using var blurredBoxPaint = new SKPaint();
+        using var blurredBoxPaint = new SKPaint();  // TODO: Implement Bluring
         blurredBoxPaint.IsAntialias = true;
-        blurredBoxPaint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Inner, 1);
         blurredBoxPaint.Color = SKColors.White.WithAlpha((int) (.2 * 255));
         
         using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
@@ -334,6 +332,12 @@ public class StatsImageController : ControllerBase
         valuePaint.Typeface = fortniteFont;
         valuePaint.TextSize = 35;
         
+        using var divisionPaint = new SKPaint();
+        divisionPaint.IsAntialias = true;
+        divisionPaint.Color = SKColors.White;
+        divisionPaint.Typeface = fortniteFont;
+        divisionPaint.TextSize = 29;
+        
         var textBounds = new SKRect();
         
         using var inputIcon = SKBitmap.Decode($"Assets/Images/Stats/InputTypes/{stats.InputType}.png");
@@ -360,8 +364,8 @@ public class StatsImageController : ControllerBase
                 $"Assets/Images/Stats/DivisionIcons/{stats.Arena.Division.ToString()}.png");
             canvas.DrawBitmap(divisionIconBitmap, 219, 139);
             
-            valuePaint.MeasureText(stats.Arena.Division.ToString(), ref textBounds);
-            canvas.DrawText(stats.Arena.Division.ToString(), 326, 189 - textBounds.Top, valuePaint);
+            divisionPaint.MeasureText(stats.Arena.Division.ToString(), ref textBounds);
+            canvas.DrawText(stats.Arena.Division.ToString(), 326, 189 - textBounds.Top, divisionPaint);
             
             titlePaint.MeasureText(stats.Arena.League, ref textBounds);
             canvas.DrawText(stats.Arena.League, 326, 215 - textBounds.Top, titlePaint);
