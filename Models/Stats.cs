@@ -36,7 +36,7 @@ public class ArenaStats
 {
     public string HypePoints { get; set; }
     
-    public int Division { get; set; }
+    public string Division { get; set; }
     
     public string League { get; set; }
     

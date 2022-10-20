@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Mvc;
 using SkiaSharp;
 
 namespace EasyFortniteStats_ImageApi.Controllers;
@@ -374,11 +375,11 @@ public class StatsImageController : ControllerBase
             canvas.DrawText(stats.Arena.HypePoints, 70, 189 - textBounds.Top, valuePaint);
             
             using var divisionIconBitmap = SKBitmap.Decode(
-                $"Assets/Images/Stats/DivisionIcons/{stats.Arena.Division.ToString()}.png");
+                $"Assets/Images/Stats/DivisionIcons/{Regex.Match(stats.Arena.Division, @"\d+").Value}.png");
             canvas.DrawBitmap(divisionIconBitmap, 219, 139);
             
-            divisionPaint.MeasureText(stats.Arena.Division.ToString(), ref textBounds);
-            canvas.DrawText(stats.Arena.Division.ToString(), 326, 189 - textBounds.Top, divisionPaint);
+            divisionPaint.MeasureText(stats.Arena.Division, ref textBounds);
+            canvas.DrawText(stats.Arena.Division, 326, 189 - textBounds.Top, divisionPaint);
             
             titlePaint.MeasureText(stats.Arena.League, ref textBounds);
             canvas.DrawText(stats.Arena.League, 326, 215 - textBounds.Top, titlePaint);
