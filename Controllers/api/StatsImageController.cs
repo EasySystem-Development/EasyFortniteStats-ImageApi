@@ -164,8 +164,8 @@ public class StatsImageController : ControllerBase
             titlePaint.MeasureText("minutes", ref textBounds);
             canvas.DrawText("minutes", 231, 397 - textBounds.Top, titlePaint);
             
-            titlePaint.MeasureText("Battlepass Level", ref textBounds);
-            canvas.DrawText("Battlepass Level", 70, 442 - textBounds.Top, titlePaint);
+            titlePaint.MeasureText("BattlePass Level", ref textBounds);
+            canvas.DrawText("BattlePass Level", 70, 442 - textBounds.Top, titlePaint);
             
             var battlePassBarBackgroundPaint = new SKPaint();
             battlePassBarBackgroundPaint.IsAntialias = true;
