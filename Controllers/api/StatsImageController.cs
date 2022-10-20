@@ -42,7 +42,6 @@ public class StatsImageController : ControllerBase
         }
         else
         {
-            Console.WriteLine("Background");
             var customBackgroundBitmap = SKBitmap.Decode(stats.CustomBackground.OpenReadStream());
             if (customBackgroundBitmap.Width != imageInfo.Width || customBackgroundBitmap.Height != imageInfo.Height)
             {
@@ -59,9 +58,9 @@ public class StatsImageController : ControllerBase
             canvas.DrawRoundRect(134, 57, 5, 50, 3, 3, nameSplit);
         }
         
-        using var blurredBoxPaint = new SKPaint();  // TODO: Implement Bluring
-        blurredBoxPaint.IsAntialias = true;
-        blurredBoxPaint.Color = SKColors.White.WithAlpha((int) (.2 * 255));
+        using var boxPaint = new SKPaint();
+        boxPaint.IsAntialias = true;
+        boxPaint.Color = SKColors.White.WithAlpha((int) (.2 * 255));
         
         using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
         using var segoeFont = SKTypeface.FromFile(@"Assets/Fonts/Segoe.ttf");
@@ -88,7 +87,9 @@ public class StatsImageController : ControllerBase
 
         if (type.Equals("competitive"))
         {
-            canvas.DrawRoundRect(49, 159, 437, 415, 30, 30, blurredBoxPaint);
+            var overallBoxRect = new SKRoundRect(SKRect.Create(50, 159, 437, 415), 30);
+            DrawBlurredRoundRect(bitmap, overallBoxRect);
+            canvas.DrawRoundRect(overallBoxRect, boxPaint);
             
             using var overlayBoxPaint = new SKPaint();
             overlayBoxPaint.IsAntialias = true;
@@ -128,7 +129,9 @@ public class StatsImageController : ControllerBase
         }
         else
         {
-            canvas.DrawRoundRect(50, 159, 437, 568, 30, 30, blurredBoxPaint);
+            var overallBoxRect = new SKRoundRect(SKRect.Create(50, 159, 437, 568), 30);
+            DrawBlurredRoundRect(bitmap, overallBoxRect);
+            canvas.DrawRoundRect(overallBoxRect, boxPaint);
             
             boxTitlePaint.MeasureText("OVERALL", ref textBounds);
             canvas.DrawText("OVERALL", 60, 134 - textBounds.Top, boxTitlePaint);
@@ -170,7 +173,9 @@ public class StatsImageController : ControllerBase
         }
         
         // Solo
-        canvas.DrawRoundRect(517, 159, 459, 185, 30, 30, blurredBoxPaint);
+        var soloBoxRect = new SKRoundRect(SKRect.Create(517, 159, 459, 185), 30);
+        DrawBlurredRoundRect(bitmap, soloBoxRect);
+        canvas.DrawRoundRect(soloBoxRect, boxPaint);
         
         boxTitlePaint.MeasureText("SOLO", ref textBounds);
         canvas.DrawText("SOLO", 527, 134 - textBounds.Top, boxTitlePaint);
@@ -197,7 +202,9 @@ public class StatsImageController : ControllerBase
         canvas.DrawText("Top 25", 837, 261 - textBounds.Top, titlePaint);
 
         // Duos
-        canvas.DrawRoundRect(996, 159, 459, 185, 30, 30, blurredBoxPaint);
+        var duosBoxRect = new SKRoundRect(SKRect.Create(996, 159, 459, 185), 30);
+        DrawBlurredRoundRect(bitmap, duosBoxRect);
+        canvas.DrawRoundRect(duosBoxRect, boxPaint);
         
         boxTitlePaint.MeasureText("DUOS", ref textBounds);
         canvas.DrawText("DUOS", 1006, 134 - textBounds.Top, boxTitlePaint);
@@ -224,7 +231,9 @@ public class StatsImageController : ControllerBase
         canvas.DrawText("Top 12", 1316, 261 - textBounds.Top, titlePaint);
         
         // Trios
-        canvas.DrawRoundRect(517, 389, 459, 185, 30, 30, blurredBoxPaint);
+        var triosBoxRect = new SKRoundRect(SKRect.Create(517, 389, 459, 185), 30);
+        DrawBlurredRoundRect(bitmap, triosBoxRect);
+        canvas.DrawRoundRect(triosBoxRect, boxPaint);
         
         boxTitlePaint.MeasureText("TRIOS", ref textBounds);
         canvas.DrawText("TRIOS", 527, 364 - textBounds.Top, boxTitlePaint);
@@ -251,7 +260,9 @@ public class StatsImageController : ControllerBase
         canvas.DrawText("Top 6", 837, 491 - textBounds.Top, titlePaint);
         
         // Squads
-        canvas.DrawRoundRect(996, 389, 459, 185, 30, 30, blurredBoxPaint);
+        var squadsBoxRect = new SKRoundRect(SKRect.Create(996, 389, 459, 185), 30);
+        DrawBlurredRoundRect(bitmap, squadsBoxRect);
+        canvas.DrawRoundRect(squadsBoxRect, boxPaint);
         
         boxTitlePaint.MeasureText("SQUADS", ref textBounds);
         canvas.DrawText("SQUADS", 1006, 364 - textBounds.Top, boxTitlePaint);
@@ -280,7 +291,9 @@ public class StatsImageController : ControllerBase
         if (type.Equals("normal"))
         {
             // Teams
-            canvas.DrawRoundRect(517, 619, 938, 108, 30, 30, blurredBoxPaint);
+            var teamsBoxRect = new SKRoundRect(SKRect.Create(517, 619, 938, 108), 30);
+            DrawBlurredRoundRect(bitmap, teamsBoxRect);
+            canvas.DrawRoundRect(teamsBoxRect, boxPaint);
         
             boxTitlePaint.MeasureText("TEAMS", ref textBounds);
             canvas.DrawText("TEAMS", 527, 594 - textBounds.Top, boxTitlePaint);
@@ -352,7 +365,7 @@ public class StatsImageController : ControllerBase
             canvas.DrawBitmap(verifiedIcon, 159 + textBounds.Width + 5, 47);
 
             var discordBoxBitmap = GenerateDiscordBox(stats.UserName ?? "???#0000");
-            canvas.DrawBitmap(discordBoxBitmap, template.Width - 30 - discordBoxBitmap.Width, 39);
+            canvas.DrawBitmap(discordBoxBitmap, template.Width - 50 - discordBoxBitmap.Width, 39);
         }
 
         if (type.Equals("competitive"))
@@ -574,6 +587,19 @@ public class StatsImageController : ControllerBase
             imageInfo.Height / 2 - discordTagTextBounds.MidY, discordTagTextPaint);
         
         return bitmap;
+    }
+    
+    private void DrawBlurredRoundRect(SKBitmap bitmap, SKRoundRect rect)
+    {
+        using var canvas = new SKCanvas(bitmap);
+
+        canvas.ClipRoundRect(rect, antialias:true);
+
+        using var paint = new SKPaint();
+        paint.IsAntialias = true;
+        paint.ImageFilter = SKImageFilter.CreateBlur(5, 5);
+            
+        canvas.DrawBitmap(bitmap, 0, 0, paint);
     }
         
 }
