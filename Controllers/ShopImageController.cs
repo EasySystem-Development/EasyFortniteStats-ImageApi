@@ -57,8 +57,8 @@ public class ShopImageController : ControllerBase
         Console.WriteLine($"[{counter}] Release locale template mutex");
         
         using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
-        using SKImage image = SKImage.FromBitmap(shopImage);
-        using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var image = SKImage.FromBitmap(shopImage);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return File(data.ToArray(), "image/png");
     }
 
@@ -413,7 +413,7 @@ public class ShopImageController : ControllerBase
         bannerPaint.Typeface = fortniteFont;
         bannerPaint.Color = SKColor.Parse(colors[2]);
         
-        SKRect textBounds = new SKRect();
+        var textBounds = new SKRect();
         bannerPaint.MeasureText(text, ref textBounds);
 
         var imageInfo = new SKImageInfo(9 + (int)textBounds.Width + 8, 31);
@@ -489,22 +489,20 @@ public class ShopImageController : ControllerBase
         canvas.DrawBitmap(rarityStripe,
             new SKPoint(0, imageInfo.Height - overlayImage.Height - rarityStripe.Height + 5));
         // TODO: Fix Transparency issues
-        
-        if (shopEntry.Special)
-        {
-            using var paint = new SKPaint();
-            paint.IsAntialias = true;
-            paint.TextSize = 60.0f;
-            paint.Color = SKColors.White;
-            using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
-            paint.Typeface = fortniteFont;
-            paint.TextAlign = SKTextAlign.Right;
+
+        if (!shopEntry.Special) return bitmap;
+        using var paint = new SKPaint();
+        paint.IsAntialias = true;
+        paint.TextSize = 60.0f;
+        paint.Color = SKColors.White;
+        using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+        paint.Typeface = fortniteFont;
+        paint.TextAlign = SKTextAlign.Right;
             
-            SKRect textBounds = new SKRect();
-            paint.MeasureText("+", ref textBounds);
+        SKRect textBounds = new SKRect();
+        paint.MeasureText("+", ref textBounds);
             
-            canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - textBounds.Height, paint);  // TODO: Improve Location
-        }
+        canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - textBounds.Height, paint);  // TODO: Improve Location
 
         return bitmap;
     }
@@ -555,7 +553,7 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private SKBitmap GenerateRarityStripe(int width, string rarityColor)
+    private static SKBitmap GenerateRarityStripe(int width, string rarityColor)
     {
         var imageInfo = new SKImageInfo(width, 14);
         var bitmap = new SKBitmap(imageInfo);
@@ -582,12 +580,12 @@ public class ShopImageController : ControllerBase
 
     private SKBitmap RotateBitmap(SKBitmap bitmap, double angle)
     {
-        double radians = Math.PI * angle / 180;
-        float sine = (float) Math.Abs(Math.Sin(radians));
-        float cosine = (float) Math.Abs(Math.Cos(radians));
+        var radians = Math.PI * angle / 180;
+        var sine = (float) Math.Abs(Math.Sin(radians));
+        var cosine = (float) Math.Abs(Math.Cos(radians));
         int originalWidth = bitmap.Width, originalHeight = bitmap.Height;
-        int rotatedWidth = (int) (cosine * originalWidth + sine * originalHeight);
-        int rotatedHeight = (int) (cosine * originalHeight + sine * originalWidth);
+        var rotatedWidth = (int) (cosine * originalWidth + sine * originalHeight);
+        var rotatedHeight = (int) (cosine * originalHeight + sine * originalWidth);
 
         var rotatedBitmap = new SKBitmap(rotatedWidth, rotatedHeight);
         using var rotatedCanvas = new SKCanvas(rotatedBitmap);
