@@ -465,13 +465,27 @@ public class ShopImageController : ControllerBase
             Math.Floor(shopEntry.Size).Equals(shopEntry.Size) ? 494 : 237);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
-
-        var response = new HttpClient().GetAsync(shopEntry.ImageUrl).Result;
+        
+        var response = new HttpClient().GetAsync(shopEntry.ImageUrl?? shopEntry.FallbackImageUrl).Result;
         using var imageBitmap = SKBitmap.Decode(response.Content.ReadAsByteArrayAsync().Result);
         var imageResize = shopEntry.Size.Equals(1.0) ? 429 : imageInfo.Width;
         using var resizedImageBitmap =
             imageBitmap.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
-
+        
+        if (shopEntry.ImageUrl == null)
+        {
+            // Draw radial gradient and paste resizedImageBitmap on it
+            using var gradientPaint = new SKPaint();
+            gradientPaint.IsAntialias = true;
+            gradientPaint.Shader = SKShader.CreateRadialGradient(
+                new SKPoint(imageInfo.Rect.MidX, imageInfo.Rect.MidY),
+                (float)Math.Sqrt(Math.Pow(0-imageInfo.Rect.MidX, 2) + Math.Pow(0-imageInfo.Rect.MidY, 2)),
+                new SKColor[] { new(129, 207, 250), new(52, 136, 217)},
+                SKShaderTileMode.Clamp);
+            
+            canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, gradientPaint);
+        }
+        
         if (shopEntry.Size.Equals(1.0))
         {
             // Crop resized bitmap to copXY
