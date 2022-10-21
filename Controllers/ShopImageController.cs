@@ -256,9 +256,10 @@ public class ShopImageController : ControllerBase
         SKImageInfo imageInfo;
         if (shop.Sections.Length > 6)
         {
-            columns.Add(shop.Sections.Take(shop.Sections.Length / 2).ToArray());
+            var breakpoint = shop.Sections.Length / 2 + shop.Sections.Length % 2;
+            columns.Add(shop.Sections.Take(breakpoint).ToArray());
             sectionWidths.Add(columns[0].Select(x => (int) x.Entries.Sum(y => y.Size)).ToArray());
-            columns.Add(shop.Sections.Skip(shop.Sections.Length / 2).ToArray());
+            columns.Add(shop.Sections.Skip(breakpoint).ToArray());
             sectionWidths.Add(columns[1].Select(x => (int) x.Entries.Sum(y => y.Size)).ToArray());
             var maxSectionWidths = sectionWidths.Select(x => x.Max()).ToArray();
             imageInfo = new SKImageInfo(
