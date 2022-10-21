@@ -22,8 +22,7 @@ public class StatsImageController : ControllerBase
     private SKBitmap GenerateTemplate(Stats stats, String type)
     {
         SKImageInfo imageInfo;
-        if (type.Equals("competitive")) imageInfo = new SKImageInfo(1505, 624);
-        else imageInfo = new SKImageInfo(1505, 777);
+        imageInfo = type.Equals("competitive") ? new SKImageInfo(1505, 624) : new SKImageInfo(1505, 777);
         
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
@@ -369,7 +368,7 @@ public class StatsImageController : ControllerBase
             canvas.DrawBitmap(discordBoxBitmap, template.Width - 50 - discordBoxBitmap.Width, 39);
         }
 
-        if (type.Equals("competitive"))
+        if (type.Equals("competitive") && stats.Arena != null)
         {
             valuePaint.MeasureText(stats.Arena.HypePoints, ref textBounds);
             canvas.DrawText(stats.Arena.HypePoints, 70, 189 - textBounds.Top, valuePaint);
@@ -529,7 +528,7 @@ public class StatsImageController : ControllerBase
         valuePaint.MeasureText(stats.Squads.Top6, ref textBounds);
         canvas.DrawText(stats.Squads.Top6, 1316, 518 - textBounds.Top, valuePaint);
 
-        if (type.Equals("normal"))
+        if (type.Equals("normal") && stats.Teams != null)
         {
             valuePaint.MeasureText(stats.Teams.MatchesPlayed, ref textBounds);
             canvas.DrawText(stats.Teams.MatchesPlayed, 537, 671 - textBounds.Top, valuePaint);
@@ -576,7 +575,7 @@ public class StatsImageController : ControllerBase
         }
         
         using var discordLogoBitmap = SKBitmap.Decode(@"Assets/Images/Stats/DiscordLogo.png");
-        canvas.DrawBitmap(discordLogoBitmap, 10,  (imageInfo.Height - discordLogoBitmap.Height) / 2);
+        canvas.DrawBitmap(discordLogoBitmap, 10,  (float)(imageInfo.Height - discordLogoBitmap.Height) / 2);
 
         while (discordTagTextBounds.Width + 10 + 2 * 15 + 50 > imageInfo.Width)
         {
@@ -585,7 +584,7 @@ public class StatsImageController : ControllerBase
         }
         
         canvas.DrawText(username, 10 + 15 + discordLogoBitmap.Width, 
-            imageInfo.Height / 2 - discordTagTextBounds.MidY, discordTagTextPaint);
+            (float)imageInfo.Height / 2 - discordTagTextBounds.MidY, discordTagTextPaint);
         
         return bitmap;
     }
