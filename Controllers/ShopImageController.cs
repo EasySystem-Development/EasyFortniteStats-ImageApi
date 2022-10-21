@@ -264,7 +264,7 @@ public class ShopImageController : ControllerBase
             imageInfo = new SKImageInfo(
                 100 + maxSectionWidths[0] * 286 + (maxSectionWidths[0] - 1) * 20 + 50
                 + maxSectionWidths[1] * 286 + (maxSectionWidths[1] - 1) * 20 + 100,
-                100 + 270 + (82 + 494) * maxSectionWidths.Max() + 120);
+                100 + 270 + (82 + 494) * columns[0].Length + 120);
         }
         else
         {
