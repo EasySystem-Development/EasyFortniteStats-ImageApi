@@ -1,10 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using SkiaSharp;
 
 namespace EasyFortniteStats_ImageApi.Controllers;
 
 public class ShopImageController : ControllerBase
 {
+    
+    private readonly IMemoryCache cache;
+    public ShopImageController(IMemoryCache cache)
+    {
+        this.cache = cache;
+    }
+
     [HttpPost("shop")]
     public IActionResult Post([FromBody] Shop shop)
     {
