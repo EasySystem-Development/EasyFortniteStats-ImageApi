@@ -20,7 +20,11 @@ public class ShopImageController : ControllerBase
         using var localeTemplateBitmap = GenerateLocaleTemplate(shop, templateBitmap, shopLocationData);
         templateBitmap.Dispose();
         using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
-        
+        var templateLock = new object();  // Store this in cache
+        lock (templateLock)
+        {
+            
+        }
         using SKImage image = SKImage.FromBitmap(shopImage);
         using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
         return File(data.ToArray(), "image/png");
