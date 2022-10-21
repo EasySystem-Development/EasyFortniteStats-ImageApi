@@ -7,7 +7,7 @@ namespace EasyFortniteStats_ImageApi.Controllers;
 public class StatsImageController : ControllerBase
 {
     [HttpPost("stats")]
-    public IActionResult Post([FromForm] Stats stats, String type = "normal")
+    public IActionResult Post([FromBody] Stats stats, String type = "normal")
     {
         if (!type.Equals("normal") && !type.Equals("competitive")) return BadRequest("Invalid type");
         

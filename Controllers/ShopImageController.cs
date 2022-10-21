@@ -16,7 +16,7 @@ public class ShopImageController : ControllerBase
     [HttpPost("shop")]
     public IActionResult Post([FromBody] Shop shop)
     {
-        (var shopLocationData, var templateBitmap) = GenerateTemplate(shop);
+        var (shopLocationData, templateBitmap) = GenerateTemplate(shop);
         using var localeTemplateBitmap = GenerateLocaleTemplate(shop, templateBitmap, shopLocationData);
         templateBitmap.Dispose();
         using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
@@ -70,7 +70,6 @@ public class ShopImageController : ControllerBase
             canvas.DrawBitmap(creatorCodeBoxBitmap,  imageInfo.Width - 100 - creatorCodeBoxBitmap.Width, 100);
             
             using var adBannerBitmap = SKBitmap.Decode(@"Assets/Images/Shop/ad_banner.png");
-            Console.Write(adBannerBitmap);
             canvas.DrawBitmap(adBannerBitmap, imageInfo.Width - 100 - 50 - adBannerBitmap.Width, 100 - adBannerBitmap.Height / 2);
         }
         
@@ -129,20 +128,18 @@ public class ShopImageController : ControllerBase
             // Draw the section name if it exists
             if (sectionLocationData.Name != null)
             {
-                using (var sectionNamePaint = new SKPaint())
-                {
-                    sectionNamePaint.IsAntialias = true;
-                    sectionNamePaint.TextSize = 45.0f;
-                    sectionNamePaint.Color = SKColors.White;
-                    sectionNamePaint.Typeface = fortniteFont;
+                using var sectionNamePaint = new SKPaint();
+                sectionNamePaint.IsAntialias = true;
+                sectionNamePaint.TextSize = 45.0f;
+                sectionNamePaint.Color = SKColors.White;
+                sectionNamePaint.Typeface = fortniteFont;
                     
-                    SKRect sectionNameTextBounds = new SKRect();
-                    sectionNamePaint.MeasureText(shop.Title, ref sectionNameTextBounds);
+                SKRect sectionNameTextBounds = new SKRect();
+                sectionNamePaint.MeasureText(shop.Title, ref sectionNameTextBounds);
 
-                    var sectionNamePoint = new SKPoint(sectionLocationData.Name.X,
-                        sectionLocationData.Name.Y + sectionNameTextBounds.Height);
-                    canvas.DrawText(shopSection?.Name, sectionNamePoint, sectionNamePaint);
-                }
+                var sectionNamePoint = new SKPoint(sectionLocationData.Name.X,
+                    sectionLocationData.Name.Y + sectionNameTextBounds.Height);
+                canvas.DrawText(shopSection?.Name, sectionNamePoint, sectionNamePaint);
             }
 
             foreach (var entryLocationData in sectionLocationData.Entries)
@@ -463,20 +460,18 @@ public class ShopImageController : ControllerBase
         
         if (shopEntry.Special)
         {
-            using (var paint = new SKPaint())
-            {
-                paint.IsAntialias = true;
-                paint.TextSize = 60.0f;
-                paint.Color = SKColors.White;
-                using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
-                paint.Typeface = fortniteFont;
-                paint.TextAlign = SKTextAlign.Right;
+            using var paint = new SKPaint();
+            paint.IsAntialias = true;
+            paint.TextSize = 60.0f;
+            paint.Color = SKColors.White;
+            using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+            paint.Typeface = fortniteFont;
+            paint.TextAlign = SKTextAlign.Right;
             
-                SKRect textBounds = new SKRect();
-                paint.MeasureText("+", ref textBounds);
+            SKRect textBounds = new SKRect();
+            paint.MeasureText("+", ref textBounds);
             
-                canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - textBounds.Height, paint);  // TODO: Improve Location
-            }
+            canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - textBounds.Height, paint);  // TODO: Improve Location
         }
 
         return bitmap;
@@ -563,14 +558,12 @@ public class ShopImageController : ControllerBase
         int rotatedHeight = (int) (cosine * originalHeight + sine * originalWidth);
 
         var rotatedBitmap = new SKBitmap(rotatedWidth, rotatedHeight);
-        using (var rotatedCanvas = new SKCanvas(rotatedBitmap))
-        {
-            rotatedCanvas.Clear();
-            rotatedCanvas.Translate(rotatedWidth / 2, rotatedHeight / 2);
-            rotatedCanvas.RotateDegrees((float) -angle);
-            rotatedCanvas.Translate(-originalWidth / 2, -originalHeight / 2);
-            rotatedCanvas.DrawBitmap(bitmap, new SKPoint());
-        }
+        using var rotatedCanvas = new SKCanvas(rotatedBitmap);
+        rotatedCanvas.Clear();
+        rotatedCanvas.Translate(rotatedWidth / 2, rotatedHeight / 2);
+        rotatedCanvas.RotateDegrees((float) -angle);
+        rotatedCanvas.Translate(-originalWidth / 2, -originalHeight / 2);
+        rotatedCanvas.DrawBitmap(bitmap, new SKPoint());
 
         return rotatedBitmap;
     }
