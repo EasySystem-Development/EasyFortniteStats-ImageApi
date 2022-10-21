@@ -29,8 +29,8 @@ public class ShopEntry
     public double Size { get; set; }
     public string Name { get; set; }
     public string RarityColor { get; set; }
-    public string ImageUrl { get; set; }
-    
+    public string? ImageUrl { get; set; }
+    public string FallbackImageUrl { get; set; }
     public bool Special { get; set; }
 }
 
