@@ -2,6 +2,8 @@
 
 public class Shop
 {
+    public string Hash { get; set; }
+    public string Locale { get; set; }
     public string Date { get; set; }
     public string Title { get; set; }
     public string CreatorCodeTitle { get; set; }

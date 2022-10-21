@@ -7,24 +7,56 @@ namespace EasyFortniteStats_ImageApi.Controllers;
 public class ShopImageController : ControllerBase
 {
     
-    private readonly IMemoryCache cache;
+    private readonly IMemoryCache _cache;
     public ShopImageController(IMemoryCache cache)
     {
-        this.cache = cache;
+        _cache = cache;
     }
 
     [HttpPost("shop")]
     public IActionResult Post([FromBody] Shop shop)
     {
-        var (shopLocationData, templateBitmap) = GenerateTemplate(shop);
-        using var localeTemplateBitmap = GenerateLocaleTemplate(shop, templateBitmap, shopLocationData);
-        templateBitmap.Dispose();
-        using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
-        var templateLock = new object();  // Store this in cache
-        lock (templateLock)
+        var counter = _cache.GetOrCreate($"counter", _ => 0);
+        _cache.Set($"counter", counter + 1);
+
+        var isNewShop = !_cache.TryGetValue($"shop_hash", out string? hash) || hash != shop.Hash;
+        if (isNewShop) _cache.Set($"shop_hash", shop.Hash);
+        
+        var templateMutex = _cache.GetOrCreate("shop_template_mutex", _ => new Mutex());
+        templateMutex.WaitOne(60 * 1000);
+        Console.WriteLine($"[{counter}] Enter template mutex");
+        _cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);
+        _cache.TryGetValue("shop_location_data", out ShopSectionLocationData[]? shopLocationData);
+        if (isNewShop || templateBitmap == null)
         {
+            templateBitmap?.Dispose();
             
+            var templateGenerationResult = GenerateTemplate(shop);
+            templateBitmap = templateGenerationResult.Item2;
+            shopLocationData = templateGenerationResult.Item1;
+            _cache.Set($"shop_template_image", templateBitmap);
+            _cache.Set($"shop_location_data", shopLocationData);
         }
+        
+        var localeTemplateMutex = _cache.GetOrCreate($"shop_template_{shop.Locale}_mutex", _ => new Mutex());
+        localeTemplateMutex.WaitOne(30 * 1000);
+        Console.WriteLine($"[{counter}] Enter locale template mutex");
+        
+        templateMutex.ReleaseMutex();
+        Console.WriteLine($"[{counter}] Release template mutex");
+        
+        _cache.TryGetValue($"shop_template_{shop.Locale}_image", out SKBitmap? localeTemplateBitmap);
+        if (isNewShop || localeTemplateBitmap == null)
+        {
+            localeTemplateBitmap?.Dispose();
+            
+            localeTemplateBitmap = GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
+            _cache.Set($"shop_template_{shop.Locale}_image", localeTemplateBitmap);
+        }
+        localeTemplateMutex.ReleaseMutex();
+        Console.WriteLine($"[{counter}] Release locale template mutex");
+        
+        using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
         using SKImage image = SKImage.FromBitmap(shopImage);
         using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
         return File(data.ToArray(), "image/png");
