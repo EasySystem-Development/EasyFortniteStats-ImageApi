@@ -68,23 +68,31 @@ public class ShopImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear();
-
-        using (var paint = new SKPaint())
+        
+        var cornerRadius = imageInfo.Width * 0.03f;
+        if (shop.BackgroundImagePath != null)
         {
+            using var stream = System.IO.File.OpenRead($"data/images/shop/{shop.BackgroundImagePath}");
+            using var backgroundBitmap = SKBitmap.Decode(stream);
+            using var resizedBackgroundBitmap = backgroundBitmap.Resize(imageInfo, SKFilterQuality.High);
+            using var backgroundCanvas = new SKCanvas(resizedBackgroundBitmap);
+            // TODO: Round image corners
+            canvas.DrawBitmap(resizedBackgroundBitmap, 0, 0);
+        }
+        else
+        {
+            using var paint = new SKPaint();
             paint.IsAntialias = true;
             paint.IsAntialias = true;
             paint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint((float)imageInfo.Width / 2, 0),
                 new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
                 new[] {new SKColor(44, 154, 234), new SKColor(14, 53, 147)},
-                new float[] {0, 1},
+                new[] {0.0f, 1.0f},
                 SKShaderTileMode.Repeat);
             
-            var radius = imageInfo.Width * 0.03f;
-            
-            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, radius, radius, paint);
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, cornerRadius, cornerRadius, paint);
         }
-        
         canvas.DrawBitmap(templateBitmap, 0, 0);
 
         if (shop.CreatorCode != null)
