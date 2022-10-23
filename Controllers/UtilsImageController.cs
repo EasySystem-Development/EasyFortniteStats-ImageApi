@@ -47,7 +47,7 @@ public class UtilsImageController : ControllerBase
         var barTextBounds = new SKRect();
         barTextPaint.MeasureText(progressBar.Percentage, ref barTextBounds);
         
-        canvas.DrawText(progressBar.Percentage, 505, bitmap.Height / 2 - barTextBounds.MidY, barBackgroundPaint);
+        canvas.DrawText(progressBar.Percentage, 505, (float)bitmap.Height / 2 - barTextBounds.MidY, barBackgroundPaint);
         
         using SKImage image = SKImage.FromBitmap(bitmap);
         using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
