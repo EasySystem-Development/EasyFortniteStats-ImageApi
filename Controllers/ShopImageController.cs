@@ -70,9 +70,10 @@ public class ShopImageController : ControllerBase
         canvas.Clear();
         
         var cornerRadius = imageInfo.Width * 0.03f;
-        if (shop.BackgroundImagePath != null)
+        var fullBackgroundImagePath = $"data/images/shop/{shop.BackgroundImagePath}";
+        if (shop.BackgroundImagePath != null && System.IO.File.Exists(fullBackgroundImagePath))
         {
-            using var stream = System.IO.File.OpenRead($"data/images/shop/{shop.BackgroundImagePath}");
+            using var stream = System.IO.File.OpenRead(fullBackgroundImagePath);
             using var backgroundBitmap = SKBitmap.Decode(stream);
             using var resizedBackgroundBitmap = backgroundBitmap.Resize(imageInfo, SKFilterQuality.High);
             using var backgroundCanvas = new SKCanvas(resizedBackgroundBitmap);
