@@ -4,11 +4,12 @@ using SkiaSharp;
 
 namespace EasyFortniteStats_ImageApi.Controllers;
 
+[Route("utils")]
 public class UtilsImageController : ControllerBase
 {
 
-    [HttpPost("utils/seasonProgress")]
-    public IActionResult GenerateSeasonProgressBar([FromForm] ProgressBar progressBar)
+    [HttpPost("seasonProgress")]
+    public IActionResult GenerateSeasonProgressBar([FromBody] ProgressBar progressBar)
     {
         using var bitmap = new SKBitmap(568, 30);
         using var canvas = new SKCanvas(bitmap);
@@ -53,8 +54,8 @@ public class UtilsImageController : ControllerBase
         return File(data.ToArray(), "image/png");
     }
 
-    [HttpPost("utils/drop")]
-    public IActionResult GenerateDropImage([FromForm] Drop drop)
+    [HttpPost("drop")]
+    public IActionResult GenerateDropImage([FromBody] Drop drop)
     {
         using var mapStream = drop.MapImage.OpenReadStream();
         using var bitmap = SKBitmap.Decode(mapStream);
