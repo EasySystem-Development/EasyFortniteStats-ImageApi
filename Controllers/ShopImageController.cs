@@ -4,6 +4,7 @@ using SkiaSharp;
 
 namespace EasyFortniteStats_ImageApi.Controllers;
 
+[ApiController] 
 public class ShopImageController : ControllerBase
 {
     
@@ -14,16 +15,17 @@ public class ShopImageController : ControllerBase
     }
 
     [HttpPost("shop")]
-    public IActionResult Post([FromBody] Shop shop)
+    public async Task<IActionResult> Post(Shop shop)
     {
-        var counter = _cache.GetOrCreate($"counter", _ => 0);
-        _cache.Set($"counter", counter + 1);
-
-        var isNewShop = !_cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
+        
+        var templateMutex = _cache.Get<Mutex>("shop_template_mutex");
+        templateMutex.WaitOne(60 * 1000);
+        var isNewShop = _cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
         if (isNewShop) _cache.Set("shop_hash", shop.Hash);
         
-        var templateMutex = _cache.GetOrCreate("shop_template_mutex", _ => new Mutex());
-        templateMutex.WaitOne(60 * 1000);
+        var counter = _cache.GetOrCreate($"counter", _ => 0);
+        _cache.Set($"counter", counter + 1);
+        
         Console.WriteLine($"[{counter}] Enter template mutex");
         _cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);
         _cache.TryGetValue("shop_location_data", out ShopSectionLocationData[]? shopLocationData);

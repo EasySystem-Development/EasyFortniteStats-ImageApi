@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Caching.Memory;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -9,6 +11,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Setup the cache
+app.Services.GetRequiredService<IMemoryCache>().Set("shop_template_mutex", new Mutex());
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
