@@ -13,13 +13,13 @@ public class ShopImageController : ControllerBase
     {
         _cache = cache;
     }
-
+    
     [HttpPost("shop")]
-    public async Task<IActionResult> Post(Shop shop)
+    public IActionResult Post(Shop shop)
     {
-        
         var templateMutex = _cache.Get<Mutex>("shop_template_mutex");
         templateMutex.WaitOne(60 * 1000);
+        
         var isNewShop = _cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
         if (isNewShop) _cache.Set("shop_hash", shop.Hash);
         
@@ -27,7 +27,8 @@ public class ShopImageController : ControllerBase
         _cache.Set($"counter", counter + 1);
         
         Console.WriteLine($"[{counter}] Enter template mutex");
-        _cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);
+        SKBitmap? templateBitmap = null;
+        //_cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);  # TODO: complete bs reference shit
         _cache.TryGetValue("shop_location_data", out ShopSectionLocationData[]? shopLocationData);
         if (isNewShop || templateBitmap == null)
         {
@@ -51,7 +52,7 @@ public class ShopImageController : ControllerBase
         if (isNewShop || localeTemplateBitmap == null)
         {
             localeTemplateBitmap?.Dispose();
-            
+            Console.WriteLine($"[{counter}] tp bm {templateBitmap}");
             localeTemplateBitmap = GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
             _cache.Set($"shop_template_{shop.Locale}_image", localeTemplateBitmap);
         }
@@ -60,8 +61,8 @@ public class ShopImageController : ControllerBase
         
         using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
         using var image = SKImage.FromBitmap(shopImage);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        return File(data.ToArray(), "image/png");
+        var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return File(data.AsStream(true), "image/png");
     }
 
     private SKBitmap GenerateShopImage(Shop shop, SKBitmap templateBitmap)
