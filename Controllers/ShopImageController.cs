@@ -20,20 +20,18 @@ public class ShopImageController : ControllerBase
         var templateMutex = _cache.Get<Mutex>("shop_template_mutex");
         templateMutex.WaitOne(60 * 1000);
         
-        var isNewShop = _cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
+        var isNewShop = !_cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
         if (isNewShop) _cache.Set("shop_hash", shop.Hash);
         
         var counter = _cache.GetOrCreate($"counter", _ => 0);
         _cache.Set($"counter", counter + 1);
         
         Console.WriteLine($"[{counter}] Enter template mutex");
-        SKBitmap? templateBitmap = null;
-        //_cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);  # TODO: complete bs reference shit
+        Console.WriteLine($"[{counter}] Is new shop {isNewShop} {_cache.Get("shop_hash")}");
+        _cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);  // TODO: complete bs reference shit
         _cache.TryGetValue("shop_location_data", out ShopSectionLocationData[]? shopLocationData);
         if (isNewShop || templateBitmap == null)
         {
-            templateBitmap?.Dispose();
-            
             var templateGenerationResult = GenerateTemplate(shop);
             templateBitmap = templateGenerationResult.Item2;
             shopLocationData = templateGenerationResult.Item1;
@@ -51,7 +49,6 @@ public class ShopImageController : ControllerBase
         _cache.TryGetValue($"shop_template_{shop.Locale}_image", out SKBitmap? localeTemplateBitmap);
         if (isNewShop || localeTemplateBitmap == null)
         {
-            localeTemplateBitmap?.Dispose();
             Console.WriteLine($"[{counter}] tp bm {templateBitmap}");
             localeTemplateBitmap = GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
             _cache.Set($"shop_template_{shop.Locale}_image", localeTemplateBitmap);
@@ -62,6 +59,7 @@ public class ShopImageController : ControllerBase
         using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
         using var image = SKImage.FromBitmap(shopImage);
         var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        Console.WriteLine($"[{counter}] return image");
         return File(data.AsStream(true), "image/png");
     }
 
