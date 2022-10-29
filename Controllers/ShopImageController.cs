@@ -28,7 +28,7 @@ public class ShopImageController : ControllerBase
         
         Console.WriteLine($"[{counter}] Enter template mutex");
         Console.WriteLine($"[{counter}] Is new shop {isNewShop} {_cache.Get("shop_hash")}");
-        _cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);  // TODO: complete bs reference shit
+        _cache.TryGetValue("shop_template_image", out SKBitmap? templateBitmap);
         _cache.TryGetValue("shop_location_data", out ShopSectionLocationData[]? shopLocationData);
         if (isNewShop || templateBitmap == null)
         {

@@ -14,6 +14,8 @@ var app = builder.Build();
 
 // Setup the cache
 app.Services.GetRequiredService<IMemoryCache>().Set("shop_template_mutex", new Mutex());
+app.Services.GetRequiredService<IMemoryCache>().Set("stats_normal_template_mutex", new Mutex());
+app.Services.GetRequiredService<IMemoryCache>().Set("stats_competitive_template_mutex", new Mutex());
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

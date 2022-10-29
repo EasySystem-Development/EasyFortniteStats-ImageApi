@@ -1,25 +1,42 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using SkiaSharp;
 
 namespace EasyFortniteStats_ImageApi.Controllers;
 
 public class StatsImageController : ControllerBase
 {
+    private readonly IMemoryCache _cache;
+    
+    public StatsImageController(IMemoryCache cache)
+    {
+        _cache = cache;
+    }
+    
     [HttpPost("stats")]
     public IActionResult Post([FromBody] Stats stats, String type = "normal")
     {
         if (!type.Equals("normal") && !type.Equals("competitive")) return BadRequest("Invalid type");
         
-        using var templateBitmap = GenerateTemplate(stats, type);
-        using var bitmap = GenerateImage(stats, type, templateBitmap);
+        var templateMutex = _cache.Get<Mutex>($"stats_{type}_template_mutex");
+        templateMutex.WaitOne();
         
+        _cache.TryGetValue($"stats_{type}_template_image", out SKBitmap? templateBitmap);
+        if (templateBitmap == null)
+        {
+            templateBitmap = GenerateTemplate(stats, type);
+            _cache.Set($"stats_{type}_template_image", templateBitmap);
+        }
+        templateMutex.ReleaseMutex();
+        
+        using var bitmap = GenerateImage(stats, type, templateBitmap);
         using SKImage image = SKImage.FromBitmap(bitmap);
-        using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
-        return File(data.ToArray(), "image/png");
+        SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return File(data.AsStream(true), "image/png");
     }
 
-    private SKBitmap GenerateTemplate(Stats stats, String type)
+    private SKBitmap GenerateTemplate(Stats stats, string type)
     {
         SKImageInfo imageInfo;
         imageInfo = type.Equals("competitive") ? new SKImageInfo(1505, 624) : new SKImageInfo(1505, 777);
@@ -28,7 +45,8 @@ public class StatsImageController : ControllerBase
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear();
         
-        if (stats.CustomBackground == null)
+        var fullBackgroundImagePath = $"data/images/shop/{stats.BackgroundImagePath}";
+        if (stats.BackgroundImagePath == null || !System.IO.File.Exists(fullBackgroundImagePath))
         {
             using var backgroundPaint = new SKPaint();
             backgroundPaint.IsAntialias = true;
@@ -42,11 +60,13 @@ public class StatsImageController : ControllerBase
         }
         else
         {
-            var customBackgroundBitmap = SKBitmap.Decode(stats.CustomBackground.OpenReadStream());
+            using var stream = System.IO.File.OpenRead(fullBackgroundImagePath);
+            var customBackgroundBitmap = SKBitmap.Decode(stream);
             if (customBackgroundBitmap.Width != imageInfo.Width || customBackgroundBitmap.Height != imageInfo.Height)
             {
                 customBackgroundBitmap = customBackgroundBitmap.Resize(imageInfo, SKFilterQuality.High);
             }
+            // TODO: Round image corners
             canvas.DrawBitmap(customBackgroundBitmap, 0, 0);
         }
 
@@ -383,8 +403,8 @@ public class StatsImageController : ControllerBase
             titlePaint.MeasureText(stats.Arena.League, ref textBounds);
             canvas.DrawText(stats.Arena.League, 326, 215 - textBounds.Top, titlePaint);
             
-            valuePaint.MeasureText(stats.Arena.Earning, ref textBounds);
-            canvas.DrawText(stats.Arena.Earning, 70, 319 - textBounds.Top, valuePaint);
+            valuePaint.MeasureText(stats.Arena.Earnings, ref textBounds);
+            canvas.DrawText(stats.Arena.Earnings, 70, 319 - textBounds.Top, valuePaint);
 
             valuePaint.MeasureText(stats.Arena.PowerRanking, ref textBounds);
             canvas.DrawText(stats.Arena.PowerRanking, 250, 319 - textBounds.Top, valuePaint);
