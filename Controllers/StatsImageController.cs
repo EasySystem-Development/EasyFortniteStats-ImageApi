@@ -356,9 +356,8 @@ public class StatsImageController : ControllerBase
         var imageInfo = new SKImageInfo(templateBitmap.Width, templateBitmap.Height);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
-        canvas.Clear();
-        
-        canvas.DrawBitmap(templateBitmap, new SKPoint(0, 0));
+
+        canvas.DrawBitmap(templateBitmap, SKPoint.Empty);
 
         var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
         var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
