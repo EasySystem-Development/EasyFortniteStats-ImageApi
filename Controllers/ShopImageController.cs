@@ -126,7 +126,6 @@ public class ShopImageController : ControllerBase
             using var shopTitlePaint = new SKPaint();
             shopTitlePaint.TextSize = 250.0f;
             shopTitlePaint.Typeface = fortniteFont;
-
             var shopTitleTextBounds = new SKRect();
             shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
 

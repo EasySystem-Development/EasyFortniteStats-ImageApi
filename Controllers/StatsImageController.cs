@@ -54,7 +54,7 @@ public class StatsImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
-        var customBackgroundBitmap = await _assets.GetBitmap("data/images/shop/{0}", stats.BackgroundImagePath); // don't dispose
+        var customBackgroundBitmap = await _assets.GetBitmap("data/images/shop/{0}", stats.BackgroundImagePath); // TODO: Clear caching on bg change
         if (customBackgroundBitmap is null)
         {
             using var backgroundPaint = new SKPaint();
@@ -351,9 +351,14 @@ public class StatsImageController : ControllerBase
         return bitmap;
     }
 
-    private async Task<SKBitmap> GenerateImage(Stats stats, string type, SKBitmap template)
+    private async Task<SKBitmap> GenerateImage(Stats stats, string type, SKBitmap templateBitmap)
     {
-        using var canvas = new SKCanvas(template);
+        var imageInfo = new SKImageInfo(templateBitmap.Width, templateBitmap.Height);
+        var bitmap = new SKBitmap(imageInfo);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear();
+        
+        canvas.DrawBitmap(templateBitmap, new SKPoint(0, 0));
 
         var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
         var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
@@ -400,7 +405,7 @@ public class StatsImageController : ControllerBase
             canvas.DrawBitmap(verifiedIcon, 159 + textBounds.Width + 5, 47);
 
             using var discordBoxBitmap = await GenerateDiscordBox(stats.UserName ?? "???#0000");
-            canvas.DrawBitmap(discordBoxBitmap, template.Width - 50 - discordBoxBitmap.Width, 39);
+            canvas.DrawBitmap(discordBoxBitmap, imageInfo.Width - 50 - discordBoxBitmap.Width, 39);
         }
 
         if (type.Equals("competitive") && stats.Arena != null)
@@ -579,7 +584,7 @@ public class StatsImageController : ControllerBase
             canvas.DrawText(stats.Teams.KD, 1115, 671 - textBounds.Top, valuePaint);
         }
 
-        return template;
+        return bitmap;
     }
 
     private async Task<SKBitmap> GenerateDiscordBox(string username)
