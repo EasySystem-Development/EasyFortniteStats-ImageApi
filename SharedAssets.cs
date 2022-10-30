@@ -36,17 +36,23 @@ public class SharedAssets
         await _semaphore.WaitAsync();
 
         cached = _memoryCache.Get<SKBitmap?>(key);
-        if (cached is not null) return cached;
+        if (cached is not null)
+        {
+            _semaphore.Release();
+            return cached;
+        }
 
         if (!File.Exists(path))
         {
             _memoryCache.Set(key, (SKBitmap?)null, _cacheOptions);
+            _semaphore.Release();
             return null;
         }
 
         var fileData = await File.ReadAllBytesAsync(path);
         var bitmap = SKBitmap.Decode(fileData);
         _memoryCache.Set(key, bitmap, _cacheOptions);
+        _semaphore.Release();
         return bitmap;
     }
 
@@ -59,7 +65,11 @@ public class SharedAssets
         await _semaphore.WaitAsync();
 
         cached = _memoryCache.Get<SKTypeface>(key);
-        if (cached is not null) return cached;
+        if (cached is not null)
+        {
+            _semaphore.Release();
+            return cached;
+        }
 
         var fileData = await File.ReadAllBytesAsync(path);
 
@@ -74,6 +84,7 @@ public class SharedAssets
                 (address, _) => NativeMemory.Free(address.ToPointer())); // TODO: test if can be disposed
             var typeface = SKTypeface.FromData(data);
             _memoryCache.Set(key, typeface, _cacheOptions);
+            _semaphore.Release();
             return typeface;
         }
     }
