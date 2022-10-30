@@ -1,4 +1,7 @@
-﻿namespace EasyFortniteStats_ImageApi;
+﻿using System.Text.Json.Serialization;
+using SkiaSharp;
+
+namespace EasyFortniteStats_ImageApi.Models;
 
 public class Shop
 {
@@ -26,12 +29,14 @@ public class ShopEntry
     public int FinalPrice { get; set; }
     public string? BannerText { get; set; }
     public string[]? BannerColor { get; set; }
-    public double Size { get; set; }
+    public float Size { get; set; }
     public string Name { get; set; }
     public string RarityColor { get; set; }
     public string? ImageUrl { get; set; }
     public string FallbackImageUrl { get; set; }
     public bool Special { get; set; }
+
+    [JsonIgnore] public SKBitmap? Image { get; set; }
 }
 
 public class ShopSectionLocationData

@@ -1,12 +1,17 @@
 ﻿using System.Text.RegularExpressions;
 
+using EasyFortniteStats_ImageApi.Models;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
 using SkiaSharp;
 
+// ReSharper disable InconsistentNaming
 namespace EasyFortniteStats_ImageApi.Controllers;
 
+[ApiController]
+[Route("stats")]
 public class StatsImageController : ControllerBase
 {
     private readonly IMemoryCache _cache;
@@ -18,10 +23,10 @@ public class StatsImageController : ControllerBase
         _assets = assets;
     }
 
-    [HttpPost("stats")]
-    public async Task<IActionResult> Post([FromBody] Stats stats, string type = "normal")
+    [HttpPost]
+    public async Task<IActionResult> Post(Stats stats, string type = "normal")
     {
-        if (type is not "normal" or "competitive") return BadRequest("Invalid type");
+        if (type is not ("normal" or "competitive")) return BadRequest("Invalid type");
 
         var templateMutex = _cache.Get<Mutex>($"stats_{type}_template_mutex");
         templateMutex.WaitOne();
@@ -32,9 +37,11 @@ public class StatsImageController : ControllerBase
             templateBitmap = await GenerateTemplate(stats, type);
             _cache.Set($"stats_{type}_template_image", templateBitmap);
         }
+
         templateMutex.ReleaseMutex();
 
-        using var bitmap = await GenerateImage(stats, type, templateBitmap);
+        using var templateCopy = templateBitmap.Copy();
+        using var bitmap = await GenerateImage(stats, type, templateCopy);
         var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
         return File(data.AsStream(true), "image/png");
     }
@@ -46,7 +53,6 @@ public class StatsImageController : ControllerBase
 
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
-        canvas.Clear();
 
         var customBackgroundBitmap = await _assets.GetBitmap("data/images/shop/{0}", stats.BackgroundImagePath); // TODO: Clear caching on bg change
         if (customBackgroundBitmap is null)
@@ -55,7 +61,7 @@ public class StatsImageController : ControllerBase
             backgroundPaint.IsAntialias = true;
             backgroundPaint.Shader = SKShader.CreateRadialGradient(
                 new SKPoint(imageInfo.Rect.MidX, imageInfo.Rect.MidY),
-                (float)Math.Sqrt(Math.Pow(0-imageInfo.Rect.MidX, 2) + Math.Pow(0-imageInfo.Rect.MidY, 2)),
+                MathF.Sqrt(MathF.Pow(imageInfo.Rect.MidX, 2) + MathF.Pow(imageInfo.Rect.MidY, 2)),
                 new SKColor[] { new(41, 165, 224), new(9, 66, 180)},
                 SKShaderTileMode.Clamp);
 
@@ -110,7 +116,7 @@ public class StatsImageController : ControllerBase
 
         var textBounds = new SKRect();
 
-        if (type.Equals("competitive"))
+        if (type == "competitive")
         {
             var overallBoxRect = new SKRoundRect(SKRect.Create(50, 159, 437, 415), 30);
             DrawBlurredRoundRect(bitmap, overallBoxRect);
@@ -191,7 +197,7 @@ public class StatsImageController : ControllerBase
             titlePaint.MeasureText("BattlePass Level", ref textBounds);
             canvas.DrawText("BattlePass Level", 70, 442 - textBounds.Top, titlePaint);
 
-            var battlePassBarBackgroundPaint = new SKPaint();
+            using var battlePassBarBackgroundPaint = new SKPaint();
             battlePassBarBackgroundPaint.IsAntialias = true;
             battlePassBarBackgroundPaint.Color = SKColors.White.WithAlpha((int)(.3 * 255));
             canvas.DrawRoundRect(158, 483, 309, 20, 10, 10, battlePassBarBackgroundPaint);
@@ -350,9 +356,8 @@ public class StatsImageController : ControllerBase
         var imageInfo = new SKImageInfo(templateBitmap.Width, templateBitmap.Height);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
-        canvas.Clear();
-        
-        canvas.DrawBitmap(templateBitmap, new SKPoint(0, 0));
+
+        canvas.DrawBitmap(templateBitmap, SKPoint.Empty);
 
         var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
         var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
@@ -362,24 +367,28 @@ public class StatsImageController : ControllerBase
         namePaint.Color = SKColors.White;
         namePaint.Typeface = segoeFont;
         namePaint.TextSize = 64;
+        namePaint.FilterQuality = SKFilterQuality.Medium;
 
         using var titlePaint = new SKPaint();
         titlePaint.IsAntialias = true;
         titlePaint.Color = SKColors.LightGray;
         titlePaint.Typeface = segoeFont;
         titlePaint.TextSize = 20;
+        titlePaint.FilterQuality = SKFilterQuality.Medium;
 
         using var valuePaint = new SKPaint();
         valuePaint.IsAntialias = true;
         valuePaint.Color = SKColors.White;
         valuePaint.Typeface = fortniteFont;
         valuePaint.TextSize = 35;
+        valuePaint.FilterQuality = SKFilterQuality.Medium;
 
         using var divisionPaint = new SKPaint();
         divisionPaint.IsAntialias = true;
         divisionPaint.Color = SKColors.White;
         divisionPaint.Typeface = fortniteFont;
         divisionPaint.TextSize = 29;
+        divisionPaint.FilterQuality = SKFilterQuality.Medium;
 
         var textBounds = new SKRect();
 
@@ -394,7 +403,7 @@ public class StatsImageController : ControllerBase
             var verifiedIcon = await _assets.GetBitmap("Assets/Images/Stats/Verified.png"); // don't dispose
             canvas.DrawBitmap(verifiedIcon, 159 + textBounds.Width + 5, 47);
 
-            var discordBoxBitmap = await GenerateDiscordBox(stats.UserName ?? "???#0000");
+            using var discordBoxBitmap = await GenerateDiscordBox(stats.UserName ?? "???#0000");
             canvas.DrawBitmap(discordBoxBitmap, imageInfo.Width - 50 - discordBoxBitmap.Width, 39);
         }
 
@@ -556,7 +565,7 @@ public class StatsImageController : ControllerBase
         valuePaint.MeasureText(stats.Squads.Top6, ref textBounds);
         canvas.DrawText(stats.Squads.Top6, 1316, 518 - textBounds.Top, valuePaint);
 
-        if (type.Equals("normal") && stats.Teams != null)
+        if (type == "normal" && stats.Teams != null)
         {
             valuePaint.MeasureText(stats.Teams.MatchesPlayed, ref textBounds);
             canvas.DrawText(stats.Teams.MatchesPlayed, 537, 671 - textBounds.Top, valuePaint);

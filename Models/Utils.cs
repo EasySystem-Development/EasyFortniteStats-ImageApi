@@ -1,4 +1,4 @@
-﻿namespace EasyFortniteStats_ImageApi;
+﻿namespace EasyFortniteStats_ImageApi.Models;
 
 public class ProgressBar
 {
