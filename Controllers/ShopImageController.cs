@@ -14,26 +14,27 @@ public class ShopImageController : ControllerBase
 {
     private readonly IMemoryCache _cache;
     private readonly IHttpClientFactory _clientFactory;
+    private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
 
-    public ShopImageController(IMemoryCache cache, IHttpClientFactory clientFactory, SharedAssets assets)
+    public ShopImageController(IMemoryCache cache, IHttpClientFactory clientFactory, NamedLock namedLock, SharedAssets assets)
     {
         _cache = cache;
         _clientFactory = clientFactory;
+        _namedLock = namedLock;
         _assets = assets;
     }
 
     [HttpPost]
     public async Task<IActionResult> Post(Shop shop)
     {
-        var templateMutex = _cache.Get<Mutex>("shop_template_mutex");
-        templateMutex.WaitOne(60 * 1000);
+        await _namedLock.WaitAsync("shop_template");
 
         var isNewShop = !_cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
         if (isNewShop) _cache.Set("shop_hash", shop.Hash);
 
         var counter = _cache.GetOrCreate($"counter", _ => 0);
-        _cache.Set($"counter", counter + 1);
+        _cache.Set("counter", counter + 1);
 
         Console.WriteLine($"[{counter}] Enter template mutex");
         Console.WriteLine($"[{counter}] Is new shop {isNewShop} {shop.Hash}");
@@ -49,12 +50,12 @@ public class ShopImageController : ControllerBase
             _cache.Set("shop_location_data", shopLocationData);
         }
 
-        var localeTemplateMutex = _cache.GetOrCreate($"shop_template_{shop.Locale}_mutex", _ => new Mutex());
-        localeTemplateMutex.WaitOne(30 * 1000);
-        Console.WriteLine($"[{counter}] Enter locale template mutex");
-
-        templateMutex.ReleaseMutex();
+        _namedLock.Release("shop_template");
         Console.WriteLine($"[{counter}] Release template mutex");
+
+        var lockName = $"shop_template_{shop.Locale}";
+        await _namedLock.WaitAsync(lockName);
+        Console.WriteLine($"[{counter}] Enter locale template mutex");
 
         var localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{shop.Locale}_image");
         if (isNewShop || localeTemplateBitmap == null)
@@ -63,7 +64,7 @@ public class ShopImageController : ControllerBase
             localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
             _cache.Set($"shop_template_{shop.Locale}_image", localeTemplateBitmap);
         }
-        localeTemplateMutex.ReleaseMutex();
+        _namedLock.Release(lockName);
         Console.WriteLine($"[{counter}] Release locale template mutex");
 
         using var localeTemplateBitmapCopy = localeTemplateBitmap.Copy();
