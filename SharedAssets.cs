@@ -81,7 +81,7 @@ public class SharedAssets
                 Unsafe.CopyBlockUnaligned(fileDataBuffer, fileDataPtr, (uint)fileData.Length);
             }
             var data = SKData.Create(new IntPtr(fileDataBuffer), fileData.Length,
-                (address, _) => NativeMemory.Free(address.ToPointer())); // TODO: test if can be disposed
+                (address, _) => NativeMemory.Free(address.ToPointer()));
             var typeface = SKTypeface.FromData(data);
             _memoryCache.Set(key, typeface, _cacheOptions);
             _semaphore.Release();

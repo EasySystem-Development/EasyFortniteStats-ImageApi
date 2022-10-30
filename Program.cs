@@ -9,6 +9,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<SharedAssets>();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
