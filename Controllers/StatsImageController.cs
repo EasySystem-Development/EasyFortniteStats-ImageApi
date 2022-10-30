@@ -15,11 +15,13 @@ namespace EasyFortniteStats_ImageApi.Controllers;
 public class StatsImageController : ControllerBase
 {
     private readonly IMemoryCache _cache;
+    private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
 
-    public StatsImageController(IMemoryCache cache, SharedAssets assets)
+    public StatsImageController(IMemoryCache cache, NamedLock namedLock, SharedAssets assets)
     {
         _cache = cache;
+        _namedLock = namedLock;
         _assets = assets;
     }
 
@@ -28,8 +30,8 @@ public class StatsImageController : ControllerBase
     {
         if (type is not ("normal" or "competitive")) return BadRequest("Invalid type");
 
-        var templateMutex = _cache.Get<Mutex>($"stats_{type}_template_mutex");
-        templateMutex.WaitOne();
+        var lockName = $"stats_{type}_template_mutex";
+        await _namedLock.WaitAsync(lockName);
 
         _cache.TryGetValue($"stats_{type}_template_image", out SKBitmap? templateBitmap);
         if (templateBitmap == null)
@@ -38,7 +40,7 @@ public class StatsImageController : ControllerBase
             _cache.Set($"stats_{type}_template_image", templateBitmap);
         }
 
-        templateMutex.ReleaseMutex();
+        _namedLock.Release(lockName);
 
         using var templateCopy = templateBitmap.Copy();
         using var bitmap = await GenerateImage(stats, type, templateCopy);
