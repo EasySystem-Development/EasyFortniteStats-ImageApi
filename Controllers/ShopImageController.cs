@@ -9,13 +9,16 @@ public class ShopImageController : ControllerBase
 {
     
     private readonly IMemoryCache _cache;
-    public ShopImageController(IMemoryCache cache)
+    private readonly SharedAssets _assets;
+
+    public ShopImageController(IMemoryCache cache, SharedAssets assets)
     {
         _cache = cache;
+        _assets = assets;
     }
     
     [HttpPost("shop")]
-    public IActionResult Post(Shop shop)
+    public async Task<IActionResult> Post(Shop shop)
     {
         var templateMutex = _cache.Get<Mutex>("shop_template_mutex");
         templateMutex.WaitOne(60 * 1000);
@@ -32,7 +35,7 @@ public class ShopImageController : ControllerBase
         _cache.TryGetValue("shop_location_data", out ShopSectionLocationData[]? shopLocationData);
         if (isNewShop || templateBitmap == null)
         {
-            var templateGenerationResult = GenerateTemplate(shop);
+            var templateGenerationResult = await GenerateTemplate(shop);
             templateBitmap = templateGenerationResult.Item2;
             shopLocationData = templateGenerationResult.Item1;
             _cache.Set("shop_template_image", templateBitmap);
@@ -50,20 +53,20 @@ public class ShopImageController : ControllerBase
         if (isNewShop || localeTemplateBitmap == null)
         {
             Console.WriteLine($"[{counter}] tp bm {templateBitmap}");
-            localeTemplateBitmap = GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
+            localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
             _cache.Set($"shop_template_{shop.Locale}_image", localeTemplateBitmap);
         }
         localeTemplateMutex.ReleaseMutex();
         Console.WriteLine($"[{counter}] Release locale template mutex");
         
-        using var shopImage = GenerateShopImage(shop, localeTemplateBitmap);
+        using var shopImage = await GenerateShopImage(shop, localeTemplateBitmap);
         using var image = SKImage.FromBitmap(shopImage);
         var data = image.Encode(SKEncodedImageFormat.Png, 100);
         Console.WriteLine($"[{counter}] return image");
         return File(data.AsStream(true), "image/png");
     }
 
-    private SKBitmap GenerateShopImage(Shop shop, SKBitmap templateBitmap)
+    private async Task<SKBitmap> GenerateShopImage(Shop shop, SKBitmap templateBitmap)
     {
         var imageInfo = new SKImageInfo(templateBitmap.Width,  templateBitmap.Height);
         var bitmap = new SKBitmap(imageInfo);
@@ -99,26 +102,25 @@ public class ShopImageController : ControllerBase
 
         if (shop.CreatorCode != null)
         {
-            using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+            var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
             using var shopTitlePaint = new SKPaint();
             shopTitlePaint.TextSize = 250.0f;
             shopTitlePaint.Typeface = fortniteFont;
             
-            SKRect shopTitleTextBounds = new SKRect();
+            var shopTitleTextBounds = new SKRect();
             shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
 
             var maxBoxWidth = imageInfo.Width - 100 - shopTitleTextBounds.Width - 100 - 100;
-            using var creatorCodeBoxBitmap = GenerateCreatorCodeBox(shop.CreatorCodeTitle, shop.CreatorCode, maxBoxWidth);
+            using var creatorCodeBoxBitmap = await GenerateCreatorCodeBox(shop.CreatorCodeTitle, shop.CreatorCode, maxBoxWidth);
             canvas.DrawBitmap(creatorCodeBoxBitmap,  imageInfo.Width - 100 - creatorCodeBoxBitmap.Width, 100);
-            
-            using var adBannerBitmap = SKBitmap.Decode(@"Assets/Images/Shop/ad_banner.png");
+            var adBannerBitmap = await _assets.GetBitmap("Assets/Images/Shop/ad_banner.png");
             canvas.DrawBitmap(adBannerBitmap, imageInfo.Width - 100 - 50 - adBannerBitmap.Width, 100 - adBannerBitmap.Height / 2);
         }
         
         return bitmap;
     }
 
-    private SKBitmap GenerateLocaleTemplate(Shop shop, SKBitmap templateBitmap, ShopSectionLocationData[] shopSectionLocationData)
+    private async Task<SKBitmap> GenerateLocaleTemplate(Shop shop, SKBitmap templateBitmap, ShopSectionLocationData[] shopSectionLocationData)
     {
         var imageInfo = new SKImageInfo(templateBitmap.Width, templateBitmap.Height);
         var bitmap = new SKBitmap(imageInfo);
@@ -127,7 +129,7 @@ public class ShopImageController : ControllerBase
         
         canvas.DrawBitmap(templateBitmap, new SKPoint());
 
-        using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
 
         // Drawing the shop title
         int shopTitleWidth;
@@ -251,7 +253,7 @@ public class ShopImageController : ControllerBase
 
                 if (shopEntry is {BannerText: { }, BannerColor: { }})
                 {
-                    using var bannerBitmap = GenerateBanner(shopEntry.BannerText, shopEntry.BannerColor);
+                    using var bannerBitmap = await GenerateBanner(shopEntry.BannerText, shopEntry.BannerColor);
                     canvas.DrawBitmap(bannerBitmap, entryLocationData.Banner!.X, entryLocationData.Banner.Y);
                 }
             }
@@ -259,7 +261,7 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private (ShopSectionLocationData[], SKBitmap) GenerateTemplate(Shop shop)
+    private async Task<(ShopSectionLocationData[], SKBitmap)> GenerateTemplate(Shop shop)
     {
         var sectionWidths = new List<int[]>();
         var columns = new List<ShopSection[]>();
@@ -306,7 +308,7 @@ public class ShopImageController : ControllerBase
                 foreach (var entry in section.Entries)
                 {
                     int entryX = (int) k * 286 + (int) k * 20, entryY = Math.Floor(k).Equals(k) ? 0 : 237 + 20;
-                    using var itemCardBitmap = GenerateItemCard(entry);
+                    using var itemCardBitmap = await GenerateItemCard(entry);
                     sectionCanvas.DrawBitmap(itemCardBitmap, new SKPoint(entryX, entryY));
 
                     k += entry.Size;
@@ -335,8 +337,9 @@ public class ShopImageController : ControllerBase
         using (var footerPaint = new SKPaint())
         {
             var footerText = "SHOP-DATA PROVIDED BY FORTNITE-API.COM";
+
+            var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf");
             
-            using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
             footerPaint.IsAntialias = true;
             footerPaint.Color = SKColors.White;
             footerPaint.TextSize = 50.0f;
@@ -351,9 +354,9 @@ public class ShopImageController : ControllerBase
         return (shopLocationData, bitmap);
     }
 
-    private SKBitmap GenerateCreatorCodeBox(string creatorCodeTitle, string creatorCode, float maxWidth)
+    private async Task<SKBitmap> GenerateCreatorCodeBox(string creatorCodeTitle, string creatorCode, float maxWidth)
     {
-        using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf");
         
         using var creatorCodeTitlePaint = new SKPaint();
         creatorCodeTitlePaint.IsAntialias = true;
@@ -415,9 +418,9 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private SKBitmap GenerateBanner(string text, string[] colors)
+    private async Task<SKBitmap> GenerateBanner(string text, string[] colors)
     {
-        using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf");
         using var bannerPaint = new SKPaint();
         bannerPaint.IsAntialias = true;
         bannerPaint.TextSize = 15.0f;
@@ -469,7 +472,7 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private SKBitmap GenerateItemCard(ShopEntry shopEntry)
+    private async Task<SKBitmap> GenerateItemCard(ShopEntry shopEntry)
     {
         var imageInfo = new SKImageInfo(
             (int) Math.Ceiling(shopEntry.Size) * 286 + ((int) Math.Ceiling(shopEntry.Size) - 1) * 20,
@@ -507,7 +510,7 @@ public class ShopImageController : ControllerBase
         }
         else canvas.DrawBitmap(resizedImageBitmap, new SKPoint(0, 0));
 
-        using var overlayImage = GenerateItemCardOverlay(imageInfo.Width, true);
+        using var overlayImage = await GenerateItemCardOverlay(imageInfo.Width, true);
         canvas.DrawBitmap(overlayImage, new SKPoint(0, imageInfo.Height - overlayImage.Height));
 
         using var rarityStripe = GenerateRarityStripe(imageInfo.Width, shopEntry.RarityColor);
@@ -520,11 +523,11 @@ public class ShopImageController : ControllerBase
         paint.IsAntialias = true;
         paint.TextSize = 60.0f;
         paint.Color = SKColors.White;
-        using var fortniteFont = SKTypeface.FromFile(@"Assets/Fonts/Fortnite.ttf");
+        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf");
         paint.Typeface = fortniteFont;
         paint.TextAlign = SKTextAlign.Right;
             
-        SKRect textBounds = new SKRect();
+        var textBounds = new SKRect();
         paint.MeasureText("+", ref textBounds);
             
         canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - textBounds.Height, paint);  // TODO: Improve Location
@@ -532,7 +535,7 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private SKBitmap GenerateItemCardOverlay(int width, bool vbucksIcon = false)
+    private async Task<SKBitmap> GenerateItemCardOverlay(int width, bool vbucksIcon = false)
     {
         var imageInfo = new SKImageInfo(width, 65);
         var bitmap = new SKBitmap(imageInfo);
@@ -550,7 +553,7 @@ public class ShopImageController : ControllerBase
 
         if (vbucksIcon)
         {
-            using var vbucksBitmap = SKBitmap.Decode(@"Assets/Images/Shop/vbucks_icon.png"); // TODO: Cache
+            using var vbucksBitmap = await _assets.GetBitmap("Assets/Images/Shop/vbucks_icon.png");
             using var rotatedVbucksBitmap = RotateBitmap(vbucksBitmap, -20);
             using var resizedVBucksBitmap = rotatedVbucksBitmap.Resize(new SKImageInfo(47, 47), SKFilterQuality.Medium);
 
@@ -603,7 +606,7 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private SKBitmap RotateBitmap(SKBitmap bitmap, double angle)
+    private static SKBitmap RotateBitmap(SKBitmap bitmap, double angle)
     {
         var radians = Math.PI * angle / 180;
         var sine = (float) Math.Abs(Math.Sin(radians));
