@@ -35,11 +35,6 @@ public class ShopImageController : ControllerBase
         var isNewShop = !_cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
         if (isNewShop) _cache.Set("shop_hash", shop.Hash);
 
-        var counter = _cache.GetOrCreate($"counter", _ => 0);
-        _cache.Set("counter", counter + 1);
-
-        Console.WriteLine($"[{counter}] Enter template mutex");
-        Console.WriteLine($"[{counter}] Is new shop {isNewShop} {shop.Hash}");
         var templateBitmap = _cache.Get<SKBitmap?>($"shop_template_bmp_{templateHash}");
         var shopLocationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");
         if (isNewShop || templateBitmap == null)
@@ -53,26 +48,21 @@ public class ShopImageController : ControllerBase
         }
 
         _namedLock.Release("shop_template");
-        Console.WriteLine($"[{counter}] Release template mutex");
 
         var lockName = $"shop_template_{shop.Locale}";
         await _namedLock.WaitAsync(lockName);
-        Console.WriteLine($"[{counter}] Enter locale template mutex");
 
         var localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{shop.Locale}_bmp");
         if (isNewShop || localeTemplateBitmap == null)
         {
-            Console.WriteLine($"[{counter}] tp bm {templateBitmap}");
             localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
             _cache.Set($"shop_template_{shop.Locale}_bmp", localeTemplateBitmap);
         }
         _namedLock.Release(lockName);
-        Console.WriteLine($"[{counter}] Release locale template mutex");
 
         using var localeTemplateBitmapCopy = localeTemplateBitmap.Copy();
         using var shopImage = await GenerateShopImage(shop, localeTemplateBitmapCopy);
         var data = shopImage.Encode(SKEncodedImageFormat.Png, 100);
-        Console.WriteLine($"[{counter}] return image");
         return File(data.AsStream(true), "image/png");
     }
 
