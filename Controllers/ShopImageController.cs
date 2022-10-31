@@ -28,6 +28,8 @@ public class ShopImageController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Post(Shop shop)
     {
+        // Hash the section ids
+        var templateHash = string.Join("-", shop.Sections.Select(x => x.Id).ToList()).GetHashCode().ToString();
         await _namedLock.WaitAsync("shop_template");
 
         var isNewShop = !_cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
@@ -38,16 +40,16 @@ public class ShopImageController : ControllerBase
 
         Console.WriteLine($"[{counter}] Enter template mutex");
         Console.WriteLine($"[{counter}] Is new shop {isNewShop} {shop.Hash}");
-        var templateBitmap = _cache.Get<SKBitmap?>("shop_template_image");
-        var shopLocationData = _cache.Get<ShopSectionLocationData[]?>("shop_location_data");
+        var templateBitmap = _cache.Get<SKBitmap?>($"shop_template_bmp_{templateHash}");
+        var shopLocationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");
         if (isNewShop || templateBitmap == null)
         {
             await PrefetchImages(shop);
             var templateGenerationResult = await GenerateTemplate(shop);
             templateBitmap = templateGenerationResult.Item2;
             shopLocationData = templateGenerationResult.Item1;
-            _cache.Set("shop_template_image", templateBitmap);
-            _cache.Set("shop_location_data", shopLocationData);
+            _cache.Set($"shop_template_bmp_{templateHash}", templateBitmap);
+            _cache.Set($"shop_location_data_{templateHash}", shopLocationData);
         }
 
         _namedLock.Release("shop_template");
@@ -57,12 +59,12 @@ public class ShopImageController : ControllerBase
         await _namedLock.WaitAsync(lockName);
         Console.WriteLine($"[{counter}] Enter locale template mutex");
 
-        var localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{shop.Locale}_image");
+        var localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{shop.Locale}_bmp");
         if (isNewShop || localeTemplateBitmap == null)
         {
             Console.WriteLine($"[{counter}] tp bm {templateBitmap}");
             localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
-            _cache.Set($"shop_template_{shop.Locale}_image", localeTemplateBitmap);
+            _cache.Set($"shop_template_{shop.Locale}_bmp", localeTemplateBitmap);
         }
         _namedLock.Release(lockName);
         Console.WriteLine($"[{counter}] Release locale template mutex");
@@ -83,9 +85,17 @@ public class ShopImageController : ControllerBase
         };
         await Parallel.ForEachAsync(entries, options, async (entry, token) =>
         {
-            using var client = _clientFactory.CreateClient();
-            var url = entry.ImageUrl ?? entry.FallbackImageUrl;
-            var imageBytes = await client.GetByteArrayAsync(url, token);
+            var imageBytes = _cache.Get<byte[]?>($"shop_image_{entry.Id}");
+            if (imageBytes == null)
+            {
+                using var client = _clientFactory.CreateClient();
+                var url = entry.ImageUrl ?? entry.FallbackImageUrl;
+                imageBytes = await client.GetByteArrayAsync(url, token);
+                
+                //cache image for 10 minutes
+                _cache.Set($"shop_image_{entry.Id}", imageBytes, TimeSpan.FromMinutes(10));
+            }
+            
             entry.Image = SKBitmap.Decode(imageBytes);
         });
     }
