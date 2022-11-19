@@ -28,7 +28,7 @@ public class UtilsImageController : ControllerBase
 
         using var barBackgroundPaint = new SKPaint();
         barBackgroundPaint.IsAntialias = true;
-        barBackgroundPaint.Color = SKColors.White.WithAlpha((int)(.6 * 255));
+        barBackgroundPaint.Color = SKColors.White.WithAlpha((int) (.3 * 255));
 
         canvas.DrawRoundRect(0, bitmap.Height / 2 - 20 / 2, 500, 20, 10, 10, barBackgroundPaint);
 
@@ -39,16 +39,16 @@ public class UtilsImageController : ControllerBase
             using var barPaint = new SKPaint();
             barPaint.IsAntialias = true;
             barPaint.Shader = SKShader.CreateLinearGradient(
-                new SKPoint(158, 0),
-                new SKPoint(158 + barWidth, 0),
+                new SKPoint(0, 0),
+                new SKPoint(barWidth, 0),
                 new[] { SKColor.Parse(progressBar.GradientColors[0]), SKColor.Parse(progressBar.GradientColors[1])},
                 new float[] {0, 1},
                 SKShaderTileMode.Repeat);
 
-            canvas.DrawRoundRect(158, 483, barWidth, 20, 10, 10, barPaint);
+            canvas.DrawRoundRect(0, (float)(bitmap.Height - 20) / 2, barWidth, 20, 10, 10, barPaint);
         }
 
-        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf");
+        var fortniteFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf");
 
         using var barTextPaint = new SKPaint();
         barTextPaint.IsAntialias = true;
@@ -59,7 +59,7 @@ public class UtilsImageController : ControllerBase
         var barTextBounds = new SKRect();
         barTextPaint.MeasureText(progressBar.Percentage, ref barTextBounds);
 
-        canvas.DrawText(progressBar.Percentage, 505, (float)bitmap.Height / 2 - barTextBounds.MidY, barBackgroundPaint);
+        canvas.DrawText(progressBar.Percentage, 505, (float)bitmap.Height / 2 - barTextBounds.MidY, barTextPaint);
 
         var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
         return File(data.AsStream(true), "image/png");
