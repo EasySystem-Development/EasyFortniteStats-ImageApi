@@ -68,17 +68,18 @@ public class UtilsImageController : ControllerBase
     [HttpPost("drop")]
     public async Task<IActionResult> GenerateDropImage(Drop drop)
     {
-        var bitmap = await _assets.GetBitmap($"data/images/map_{drop.Locale}.png"); // don't dispose
+        var bitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose
         using var canvas = new SKCanvas(bitmap);
 
         var markerAmount = Directory.EnumerateFiles("Assets/Images/Map/Markers", "*.png").Count();
         var markerBitmap = await _assets.GetBitmap($"Assets/Images/Map/Markers/{RandomNumberGenerator.GetInt32(markerAmount - 1)}.png");
-
+    
         const int worldRadius = 135000;
-        var mx = (drop.Y + worldRadius) / (worldRadius * 2) * bitmap.Width;
-        var my = (1 - (drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height;
+        var mx = ((float)drop.Y + worldRadius) / (worldRadius * 2) * bitmap!.Width;
+        var my = (1 - ((float)drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height;
+        Console.WriteLine($"{mx} {my}");
 
-        canvas.DrawBitmap(markerBitmap, mx - markerBitmap!.Width / 2, my - markerBitmap.Height);
+        canvas.DrawBitmap(markerBitmap, mx - (float)markerBitmap!.Width / 2, my - markerBitmap.Height);
 
         using var data = bitmap.Encode(SKEncodedImageFormat.Jpeg, 100);
         return File(data.AsStream(true), "image/jpeg");
