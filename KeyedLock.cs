@@ -15,11 +15,10 @@ public sealed class NamedLock
         _poolCapacity = poolCapacity;
     }
 
-    public async Task<bool> WaitAsync(string key, int millisecondsTimeout,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> WaitAsync(string key, int millisecondsTimeout, CancellationToken cancellationToken = default)
     {
         var semaphore = GetSemaphore(key);
-        bool entered = false;
+        var entered = false;
         try
         {
             entered = await semaphore.WaitAsync(millisecondsTimeout,
@@ -87,10 +86,9 @@ public sealed class NamedLock
             }
         }
         if (entered) semaphore.Release();
-        if (counter == 0)
-        {
-            Debug.Assert(semaphore.CurrentCount == 1);
-            lock (_pool) if (_pool.Count < _poolCapacity) _pool.Push(semaphore);
-        }
+        if (counter != 0)  return;
+
+        Debug.Assert(semaphore.CurrentCount == 1);
+        lock (_pool) if (_pool.Count < _poolCapacity) _pool.Push(semaphore);
     }
 }
