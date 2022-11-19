@@ -68,8 +68,7 @@ public class UtilsImageController : ControllerBase
     [HttpPost("drop")]
     public async Task<IActionResult> GenerateDropImage(Drop drop)
     {
-        await using var mapStream = drop.MapImage.OpenReadStream();
-        using var bitmap = SKBitmap.Decode(mapStream);
+        var bitmap = await _assets.GetBitmap($"data/images/map_{drop.Locale}.png"); // don't dispose
         using var canvas = new SKCanvas(bitmap);
 
         var markerAmount = Directory.EnumerateFiles("Assets/Images/Map/Markers", "*.png").Count();

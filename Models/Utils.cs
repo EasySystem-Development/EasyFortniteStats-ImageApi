@@ -10,7 +10,7 @@ public class ProgressBar
 
 public class Drop
 {
-    public IFormFile MapImage { get; set; }
+    public string Locale { get; set; }
     public int X { get; set; }
     public int Y { get; set; }
 }
