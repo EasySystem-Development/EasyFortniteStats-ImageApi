@@ -67,20 +67,23 @@ public class StatsImageController : ControllerBase
                 new SKColor[] { new(41, 165, 224), new(9, 66, 180)},
                 SKShaderTileMode.Clamp);
 
-            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 25, 25, backgroundPaint);
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundPaint);
         }
         else
         {
-            // TODO: Round image corners
+            // TODO: Handle template regeneration on bg change
+            using var backgroundImagePaint = new SKPaint();
+            backgroundImagePaint.IsAntialias = true;
+            backgroundImagePaint.FilterQuality = SKFilterQuality.Medium;
+            
             if (customBackgroundBitmap.Width != imageInfo.Width || customBackgroundBitmap.Height != imageInfo.Height)
             {
                 using var resizedCustomBackgroundBitmap = customBackgroundBitmap.Resize(imageInfo, SKFilterQuality.Medium);
-                canvas.DrawBitmap(resizedCustomBackgroundBitmap, 0, 0);
+                backgroundImagePaint.Shader = SKShader.CreateBitmap(resizedCustomBackgroundBitmap, SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
             }
-            else
-            {
-                canvas.DrawBitmap(customBackgroundBitmap, 0, 0);
-            }
+            else backgroundImagePaint.Shader = SKShader.CreateBitmap(customBackgroundBitmap, SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
+            
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundImagePaint);
         }
 
         using (var nameSplit = new SKPaint())
