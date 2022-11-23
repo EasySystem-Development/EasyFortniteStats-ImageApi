@@ -29,15 +29,17 @@ public class StatsImageController : ControllerBase
     public async Task<IActionResult> Post(Stats stats, string type = "normal")
     {
         if (type is not ("normal" or "competitive")) return BadRequest("Invalid type");
+        
+        var backgroundHash = stats.BackgroundImagePath is not null ? $"_{stats.BackgroundImagePath.GetHashCode()}" : "";
 
-        var lockName = $"stats_{type}_template_mutex";
+        var lockName = $"stats_{type}{backgroundHash}_template_mutex";
         await _namedLock.WaitAsync(lockName);
 
-        _cache.TryGetValue($"stats_{type}_template_image", out SKBitmap? templateBitmap);
+        _cache.TryGetValue($"stats_{type}{backgroundHash}_template_image", out SKBitmap? templateBitmap);
         if (templateBitmap == null)
         {
             templateBitmap = await GenerateTemplate(stats, type);
-            _cache.Set($"stats_{type}_template_image", templateBitmap);
+            _cache.Set($"stats_{type}{backgroundHash}_template_image", templateBitmap);
         }
 
         _namedLock.Release(lockName);
@@ -71,7 +73,6 @@ public class StatsImageController : ControllerBase
         }
         else
         {
-            // TODO: Handle template regeneration on bg change
             using var backgroundImagePaint = new SKPaint();
             backgroundImagePaint.IsAntialias = true;
             backgroundImagePaint.FilterQuality = SKFilterQuality.Medium;
