@@ -553,8 +553,8 @@ public class ShopImageController : ControllerBase
 
         var textBounds = new SKRect();
         paint.MeasureText("+", ref textBounds);
-
-        canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - textBounds.Height, paint);  // TODO: Improve Location
+        
+        canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - 15, paint);
 
         return bitmap;
     }
