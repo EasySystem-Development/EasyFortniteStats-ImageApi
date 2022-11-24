@@ -44,7 +44,7 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
       -
         name: Discord notification
-        uses: Ilshidur/action-discord
+        uses: Ilshidur/action-discord@master
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
