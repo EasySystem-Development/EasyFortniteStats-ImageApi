@@ -14,5 +14,10 @@
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     </ItemGroup>
+    
+    <!-- Include asset files -->
+    <ItemGroup>
+        <Content Include="Assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 
 </Project>
