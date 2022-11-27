@@ -99,14 +99,7 @@ public class ShopImageController : ControllerBase
         var cornerRadius = imageInfo.Width * 0.03f;
 
         var backgroundBitmap = await _assets.GetBitmap("data/images/shop/{0}", shop.BackgroundImagePath); // don't dispose
-        if (backgroundBitmap is not null)
-        {
-            using var resizedBackgroundBitmap = backgroundBitmap.Resize(imageInfo, SKFilterQuality.Medium);
-            using var backgroundCanvas = new SKCanvas(resizedBackgroundBitmap);
-            // TODO: Round image corners
-            canvas.DrawBitmap(resizedBackgroundBitmap, 0, 0);
-        }
-        else
+        if (backgroundBitmap is null)
         {
             using var paint = new SKPaint();
             paint.IsAntialias = true;
@@ -118,6 +111,17 @@ public class ShopImageController : ControllerBase
                 SKShaderTileMode.Repeat);
 
             canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, cornerRadius, cornerRadius, paint);
+        }
+        else
+        {
+            using var backgroundImagePaint = new SKPaint();
+            backgroundImagePaint.IsAntialias = true;
+            backgroundImagePaint.FilterQuality = SKFilterQuality.Medium;
+            
+            using var resizedCustomBackgroundBitmap = backgroundBitmap.Resize(imageInfo, SKFilterQuality.Medium);
+            backgroundImagePaint.Shader = SKShader.CreateBitmap(resizedCustomBackgroundBitmap, SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
+            
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundImagePaint);
         }
         canvas.DrawBitmap(templateBitmap, 0, 0);
 
@@ -549,8 +553,8 @@ public class ShopImageController : ControllerBase
 
         var textBounds = new SKRect();
         paint.MeasureText("+", ref textBounds);
-
-        canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - textBounds.Height, paint);  // TODO: Improve Location
+        
+        canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - 15, paint);
 
         return bitmap;
     }

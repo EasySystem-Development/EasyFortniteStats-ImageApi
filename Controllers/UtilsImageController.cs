@@ -68,7 +68,7 @@ public class UtilsImageController : ControllerBase
     [HttpPost("drop")]
     public async Task<IActionResult> GenerateDropImage(Drop drop)
     {
-        var bitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose
+        var bitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose TODO: Clear caching on bg change
         using var canvas = new SKCanvas(bitmap);
 
         var markerAmount = Directory.EnumerateFiles("Assets/Images/Map/Markers", "*.png").Count();
@@ -77,7 +77,6 @@ public class UtilsImageController : ControllerBase
         const int worldRadius = 135000;
         var mx = ((float)drop.Y + worldRadius) / (worldRadius * 2) * bitmap!.Width;
         var my = (1 - ((float)drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height;
-        Console.WriteLine($"{mx} {my}");
 
         canvas.DrawBitmap(markerBitmap, mx - (float)markerBitmap!.Width / 2, my - markerBitmap.Height);
 

@@ -29,15 +29,17 @@ public class StatsImageController : ControllerBase
     public async Task<IActionResult> Post(Stats stats, string type = "normal")
     {
         if (type is not ("normal" or "competitive")) return BadRequest("Invalid type");
+        
+        var backgroundHash = stats.BackgroundImagePath is not null ? $"_{stats.BackgroundImagePath.GetHashCode()}" : "";
 
-        var lockName = $"stats_{type}_template_mutex";
+        var lockName = $"stats_{type}{backgroundHash}_template_mutex";
         await _namedLock.WaitAsync(lockName);
 
-        _cache.TryGetValue($"stats_{type}_template_image", out SKBitmap? templateBitmap);
+        _cache.TryGetValue($"stats_{type}{backgroundHash}_template_image", out SKBitmap? templateBitmap);
         if (templateBitmap == null)
         {
             templateBitmap = await GenerateTemplate(stats, type);
-            _cache.Set($"stats_{type}_template_image", templateBitmap);
+            _cache.Set($"stats_{type}{backgroundHash}_template_image", templateBitmap);
         }
 
         _namedLock.Release(lockName);
@@ -56,7 +58,7 @@ public class StatsImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
-        var customBackgroundBitmap = await _assets.GetBitmap("data/images/shop/{0}", stats.BackgroundImagePath); // TODO: Clear caching on bg change
+        var customBackgroundBitmap = await _assets.GetBitmap("data/images/shop/{0}", stats.BackgroundImagePath); // don't dispose TODO: Clear caching on bg change
         if (customBackgroundBitmap is null)
         {
             using var backgroundPaint = new SKPaint();
@@ -67,20 +69,22 @@ public class StatsImageController : ControllerBase
                 new SKColor[] { new(41, 165, 224), new(9, 66, 180)},
                 SKShaderTileMode.Clamp);
 
-            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 25, 25, backgroundPaint);
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundPaint);
         }
         else
         {
-            // TODO: Round image corners
+            using var backgroundImagePaint = new SKPaint();
+            backgroundImagePaint.IsAntialias = true;
+            backgroundImagePaint.FilterQuality = SKFilterQuality.Medium;
+            
             if (customBackgroundBitmap.Width != imageInfo.Width || customBackgroundBitmap.Height != imageInfo.Height)
             {
                 using var resizedCustomBackgroundBitmap = customBackgroundBitmap.Resize(imageInfo, SKFilterQuality.Medium);
-                canvas.DrawBitmap(resizedCustomBackgroundBitmap, 0, 0);
+                backgroundImagePaint.Shader = SKShader.CreateBitmap(resizedCustomBackgroundBitmap, SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
             }
-            else
-            {
-                canvas.DrawBitmap(customBackgroundBitmap, 0, 0);
-            }
+            else backgroundImagePaint.Shader = SKShader.CreateBitmap(customBackgroundBitmap, SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
+            
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundImagePaint);
         }
 
         using (var nameSplit = new SKPaint())
