@@ -150,25 +150,23 @@ public class AccountImageController : ControllerBase
         
         using var namePaint = new SKPaint();
         namePaint.IsAntialias = true;
-        namePaint.TextSize = 18;
+        namePaint.TextSize = 18.0f;
         namePaint.Color = SKColors.White;
         namePaint.Typeface = fortniteFont;
         namePaint.TextAlign = SKTextAlign.Center;
         
         var entryNameTextBounds = new SKRect();
         namePaint.MeasureText(lockerItem.Name, ref entryNameTextBounds);
-        
         canvas.DrawText(lockerItem.Name, (float)bitmap.Width / 2, bitmap.Height - 59 + entryNameTextBounds.Height, namePaint);
         
         using var descriptionPaint = new SKPaint();
         descriptionPaint.IsAntialias = true;
-        descriptionPaint.TextSize = 15;
+        descriptionPaint.TextSize = 15.0f;
         descriptionPaint.Color = SKColor.Parse(lockerItem.RarityColor);
         descriptionPaint.Typeface = fortniteFont;
         descriptionPaint.TextAlign = SKTextAlign.Center;
         
         descriptionPaint.MeasureText(lockerItem.Description, ref entryNameTextBounds);
-        
         canvas.DrawText(lockerItem.Description, (float)bitmap.Width / 2, bitmap.Height - 42 + entryNameTextBounds.Height, descriptionPaint);
         
         using var sourcePaint = new SKPaint();
