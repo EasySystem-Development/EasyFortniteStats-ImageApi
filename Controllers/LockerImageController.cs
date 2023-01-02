@@ -83,7 +83,7 @@ public class AccountImageController : ControllerBase
     
     private async Task<Dictionary<string, SKBitmap>> GenerateItemCards(Locker locker)
     {
-        Dictionary<string, SKBitmap> itemCards = new();
+        ConcurrentDictionary<string, SKBitmap> itemCards = new();
 
         var options = new ParallelOptions
         {
@@ -98,17 +98,31 @@ public class AccountImageController : ControllerBase
                 if (itemImage == null)
                 {
                     var client = _clientFactory.CreateClient();
-                    itemImage = await client.GetByteArrayAsync(item.ImageUrl, token);
-                    //_cache.Set($"locker_image_{item.Id}", itemImage, TimeSpan.FromDays(1));
+                    try
+                    {
+                        itemImage = await client.GetByteArrayAsync(item.ImageUrl, token);
+                    }
+                    catch (HttpRequestException e)
+                    {
+                        if (e.StatusCode != HttpStatusCode.NotFound) throw;
+                        itemImage = await client.GetByteArrayAsync(item.ImageUrl.Replace("_256", ""), token);
+                    }
+                    
+                    _cache.Set($"locker_image_{item.Id}", itemImage, TimeSpan.FromDays(1));
                 }
                 item.Image = SKBitmap.Decode(itemImage);
+                if (item.Image.Width != 256 || item.Image.Height != 256)
+                {
+                    item.Image = item.Image.Resize(new SKImageInfo(256, 256), SKFilterQuality.High);
+                }
+                
                 //_cache.Set($"locker_card_image_{item.Id}_{locker.Locale}", item.Image);
 
                 itemCard = await GenerateItemCard(item);
             }
-            itemCards.Add(item.Id, itemCard);
+            itemCards.TryAdd(item.Id, itemCard);
         });
-        return itemCards;
+        return itemCards.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
     private async Task<SKBitmap> GenerateItemCard(LockerItem lockerItem)
