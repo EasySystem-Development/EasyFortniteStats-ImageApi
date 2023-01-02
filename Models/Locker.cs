@@ -27,7 +27,8 @@ public class LockerItem
 
 public enum SourceType
 {
-    ItemShop = 1,
-    BattlePass = 2,
+    VBucks = 1,
+    BattlePassPaid = 2,
+    BattlePassFree = 3,
     Other = 0
 }
