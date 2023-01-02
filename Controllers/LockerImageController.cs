@@ -154,6 +154,18 @@ public class AccountImageController : ControllerBase
         descriptionPaint.MeasureText(lockerItem.Description, ref entryNameTextBounds);
         
         canvas.DrawText(lockerItem.Description, (float)bitmap.Width / 2, bitmap.Height - 42 + entryNameTextBounds.Height, descriptionPaint);
+        
+        using var sourcePaint = new SKPaint();
+        sourcePaint.IsAntialias = true;
+        sourcePaint.TextSize = 15.0f;
+        sourcePaint.Color = SKColors.White;
+        sourcePaint.Typeface = fortniteFont;
+        sourcePaint.TextAlign = SKTextAlign.Right;
+        
+        var fontOffset = lockerItem.SourceType == SourceType.Other ? 10 : 42;
+        
+        sourcePaint.MeasureText(lockerItem.Source, ref entryNameTextBounds);
+        canvas.DrawText(lockerItem.Source, bitmap.Width - fontOffset, bitmap.Height - entryNameTextBounds.Height + 4, sourcePaint);
 
         return bitmap;
     }
