@@ -53,6 +53,17 @@ public class AccountImageController : ControllerBase
             50 + nameFontSize + 25 + rows * 313 + (rows - 1) * 25 + 50);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
+        
+        using var backgroundPaint = new SKPaint();
+        backgroundPaint.IsAntialias = true;
+        backgroundPaint.Shader = SKShader.CreateLinearGradient(
+            new SKPoint((float)imageInfo.Width / 2, 0),
+            new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
+            new[] {new SKColor(44, 154, 234), new SKColor(14, 53, 147)},
+            new[] {0.0f, 1.0f},
+            SKShaderTileMode.Repeat);
+        
+        canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
 
         var column = 0; var row = 0;
         foreach (var item in locker.Items)
