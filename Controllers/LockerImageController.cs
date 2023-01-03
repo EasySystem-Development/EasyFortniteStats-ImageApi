@@ -36,8 +36,21 @@ public class AccountImageController : ControllerBase
         using var lockerBitmap = await GenerateImage(locker, itemsCards);
         _namedLock.Release($"locker_{locker.RequestId}");
         
-        var data = lockerBitmap.Encode(SKEncodedImageFormat.Png, 100);
-        return File(data.AsStream(true), "image/png");
+        var qualityMapping = new Dictionary<int, int>
+        {
+            {125, 100},
+            {225, 95},
+            {300, 90},
+            {400, 85},
+            {450, 80},
+            {500, 75},
+        };
+        
+        // Determine the quality of the image based on quality mapping and locker.Items.Length
+        var quality = qualityMapping.FirstOrDefault(x => x.Key >= locker.Items.Length).Value;
+        Console.WriteLine("Quality: " + quality);
+        var data = lockerBitmap.Encode(SKEncodedImageFormat.Jpeg, quality);
+        return File(data.AsStream(true), "image/jpeg");
     }
 
     private async Task<SKBitmap> GenerateImage(Locker locker, IReadOnlyDictionary<string, SKBitmap> itemCards)
