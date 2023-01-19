@@ -409,7 +409,7 @@ public class StatsImageController : ControllerBase
             var verifiedIcon = await _assets.GetBitmap("Assets/Images/Stats/Verified.png"); // don't dispose
             canvas.DrawBitmap(verifiedIcon, 159 + textBounds.Width + 5, 47);
 
-            using var discordBoxBitmap = await GenerateDiscordBox(stats.UserName ?? "???#0000");
+            using var discordBoxBitmap = await ImageUtils.GenerateDiscordBox(_assets, stats.UserName ?? "???#0000");
             canvas.DrawBitmap(discordBoxBitmap, imageInfo.Width - 50 - discordBoxBitmap.Width, 39);
         }
 
