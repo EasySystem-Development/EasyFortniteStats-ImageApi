@@ -8,7 +8,6 @@ public class Locker
     public string RequestId { get; set; }
     public string Locale { get; set; }
     public string PlayerName { get; set; }
-    
     public string UserName { get; set; }
     public LockerItem[] Items { get; set; }
 }

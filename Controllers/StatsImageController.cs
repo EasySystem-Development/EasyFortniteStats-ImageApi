@@ -415,8 +415,9 @@ public class StatsImageController : ControllerBase
 
         if (type.Equals("competitive") && stats.Arena != null)
         {
-            valuePaint.MeasureText(stats.Arena.HypePoints, ref textBounds);
-            canvas.DrawText(stats.Arena.HypePoints, 70, 189 - textBounds.Top, valuePaint);
+            var hypePoints = stats.Arena.HypePoints ?? "N/A";
+            valuePaint.MeasureText(hypePoints, ref textBounds);
+            canvas.DrawText(hypePoints, 70, 189 - textBounds.Top, valuePaint);
 
             var divisionIconBitmap = await _assets.GetBitmap(
                 $"Assets/Images/Stats/DivisionIcons/{Regex.Match(stats.Arena.Division, @"\d+").Value}.png"); // don't dispose

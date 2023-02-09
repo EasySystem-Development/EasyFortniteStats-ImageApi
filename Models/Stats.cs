@@ -21,7 +21,7 @@ public class Stats
 
 public class ArenaStats
 {
-    public string HypePoints { get; set; }
+    public string? HypePoints { get; set; }
     public string Division { get; set; }
     public string League { get; set; }
     public string Earnings { get; set; }
