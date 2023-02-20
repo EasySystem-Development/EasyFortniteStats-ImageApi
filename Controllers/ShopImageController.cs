@@ -502,10 +502,9 @@ public class ShopImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
-        using var imageBitmap = shopEntry.Image!;
         var imageResize = shopEntry.Size.Equals(1.0f) ? 429 : imageInfo.Width;
         using var resizedImageBitmap =
-            imageBitmap.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
+            shopEntry.Image!.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
 
         if (shopEntry.ImageUrl == null)
         {
@@ -529,15 +528,13 @@ public class ShopImageController : ControllerBase
             canvas.DrawBitmap(resizedImageBitmap, cropRect,
                 new SKRect(0, 0, imageInfo.Width, resizedImageBitmap.Height));
         }
-        else
-        {
-            canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
-        }
+        else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
 
-        using var overlayImage = await GenerateItemCardOverlay(imageInfo.Width, true);
+        var vbucksBitmap = await _assets.GetBitmap(@"Assets/Images/Shop/vbucks_icon.png"); // don't dispose
+        using var overlayImage = ImageUtils.GenerateItemCardOverlay(imageInfo.Width, vbucksBitmap);
         canvas.DrawBitmap(overlayImage, new SKPoint(0, imageInfo.Height - overlayImage.Height));
 
-        using var rarityStripe = GenerateRarityStripe(imageInfo.Width, shopEntry.RarityColor);
+        using var rarityStripe = ImageUtils.GenerateRarityStripe(imageInfo.Width, SKColor.Parse(shopEntry.RarityColor));
         canvas.DrawBitmap(rarityStripe,
             new SKPoint(0, imageInfo.Height - overlayImage.Height - rarityStripe.Height + 5));
         // TODO: Fix Transparency issues
@@ -557,97 +554,5 @@ public class ShopImageController : ControllerBase
         canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - 15, paint);
 
         return bitmap;
-    }
-
-    private async Task<SKBitmap> GenerateItemCardOverlay(int width, bool vbucksIcon = false)
-    {
-        var imageInfo = new SKImageInfo(width, 65);
-        var bitmap = new SKBitmap(imageInfo);
-        using var canvas = new SKCanvas(bitmap);
-        //canvas.Clear(SKColors.Transparent);
-
-        using (var paint = new SKPaint())
-        {
-            paint.IsAntialias = true;
-            paint.Color = new SKColor(14, 14, 14);
-            paint.Style = SKPaintStyle.Fill;
-
-            canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, paint);
-        }
-
-        if (vbucksIcon)
-        {
-            var vbucksBitmap = await _assets.GetBitmap(@"Assets/Images/Shop/vbucks_icon.png"); // don't dispose
-            using var rotatedVbucksBitmap = RotateBitmap(vbucksBitmap!, -20);
-            using var resizedVBucksBitmap = rotatedVbucksBitmap.Resize(new SKImageInfo(47, 47), SKFilterQuality.Medium);
-
-            canvas.DrawBitmap(resizedVBucksBitmap, new SKPoint(imageInfo.Width - 45, imageInfo.Height - 35));
-        }
-
-        using (var paint = new SKPaint())
-        {
-            paint.IsAntialias = true;
-            paint.Color = new SKColor(30, 30, 30);
-            paint.Style = SKPaintStyle.Fill;
-
-            using var path = new SKPath();
-            path.MoveTo(0, imageInfo.Height - 29);
-            path.LineTo(imageInfo.Width, imageInfo.Height - 29);
-            path.LineTo(imageInfo.Width, imageInfo.Height - 25);
-            path.LineTo(0, imageInfo.Height - 24);
-            path.Close();
-
-            canvas.DrawPath(path, paint);
-
-            canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height - 29, paint);
-        }
-
-        return bitmap;
-    }
-
-    private static SKBitmap GenerateRarityStripe(int width, string rarityColor)
-    {
-        var imageInfo = new SKImageInfo(width, 14);
-        var bitmap = new SKBitmap(imageInfo);
-        using var canvas = new SKCanvas(bitmap);
-        canvas.Clear(SKColors.Transparent);
-
-        using var paint = new SKPaint();
-        {
-            paint.IsAntialias = true;
-            paint.Color = SKColor.Parse(rarityColor);
-            paint.Style = SKPaintStyle.Fill;
-
-            using var path = new SKPath();
-            path.MoveTo(0, imageInfo.Height - 5);
-            path.LineTo(imageInfo.Width, 0);
-            path.LineTo(imageInfo.Width, imageInfo.Height - 6);
-            path.LineTo(0, imageInfo.Height);
-            path.Close();
-
-            canvas.DrawPath(path, paint);
-        }
-
-        return bitmap;
-    }
-
-    private static SKBitmap RotateBitmap(SKBitmap bitmap, float angle)
-    {
-        var radians = MathF.PI * angle / 180;
-        var sine = MathF.Abs(MathF.Sin(radians));
-        var cosine = MathF.Abs(MathF.Cos(radians));
-        int originalWidth = bitmap.Width, originalHeight = bitmap.Height;
-        var rotatedWidth = (int) (cosine * originalWidth + sine * originalHeight);
-        var rotatedHeight = (int) (cosine * originalHeight + sine * originalWidth);
-
-        var rotatedBitmap = new SKBitmap(rotatedWidth, rotatedHeight);
-        using var rotatedCanvas = new SKCanvas(rotatedBitmap);
-        rotatedCanvas.Clear();
-        rotatedCanvas.Translate(rotatedWidth / 2f, rotatedHeight / 2f);
-        rotatedCanvas.RotateDegrees(-angle);
-        rotatedCanvas.Translate(-originalWidth / 2f, -originalHeight / 2f);
-        rotatedCanvas.DrawBitmap(bitmap, SKPoint.Empty);
-
-        return rotatedBitmap;
     }
 }

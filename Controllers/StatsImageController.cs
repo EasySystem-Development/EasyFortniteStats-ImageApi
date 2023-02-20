@@ -409,14 +409,15 @@ public class StatsImageController : ControllerBase
             var verifiedIcon = await _assets.GetBitmap("Assets/Images/Stats/Verified.png"); // don't dispose
             canvas.DrawBitmap(verifiedIcon, 159 + textBounds.Width + 5, 47);
 
-            using var discordBoxBitmap = await GenerateDiscordBox(stats.UserName ?? "???#0000");
+            using var discordBoxBitmap = await ImageUtils.GenerateDiscordBox(_assets, stats.UserName ?? "???#0000");
             canvas.DrawBitmap(discordBoxBitmap, imageInfo.Width - 50 - discordBoxBitmap.Width, 39);
         }
 
         if (type.Equals("competitive") && stats.Arena != null)
         {
-            valuePaint.MeasureText(stats.Arena.HypePoints, ref textBounds);
-            canvas.DrawText(stats.Arena.HypePoints, 70, 189 - textBounds.Top, valuePaint);
+            var hypePoints = stats.Arena.HypePoints ?? "N/A";
+            valuePaint.MeasureText(hypePoints, ref textBounds);
+            canvas.DrawText(hypePoints, 70, 189 - textBounds.Top, valuePaint);
 
             var divisionIconBitmap = await _assets.GetBitmap(
                 $"Assets/Images/Stats/DivisionIcons/{Regex.Match(stats.Arena.Division, @"\d+").Value}.png"); // don't dispose
@@ -588,46 +589,6 @@ public class StatsImageController : ControllerBase
             valuePaint.MeasureText(stats.Teams.KD, ref textBounds);
             canvas.DrawText(stats.Teams.KD, 1115, 671 - textBounds.Top, valuePaint);
         }
-
-        return bitmap;
-    }
-
-    private async Task<SKBitmap> GenerateDiscordBox(string username)
-    {
-        var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
-
-        using var discordTagTextPaint = new SKPaint();
-        discordTagTextPaint.IsAntialias = true;
-        discordTagTextPaint.Color = SKColors.White;
-        discordTagTextPaint.Typeface = segoeFont;
-        discordTagTextPaint.TextSize = 25;
-
-        var discordTagTextBounds = new SKRect();
-        discordTagTextPaint.MeasureText(username, ref discordTagTextBounds);
-
-        var imageInfo = new SKImageInfo(Math.Min((int)discordTagTextBounds.Width + 10 + 2 * 15 + 50, 459), 62);
-        var bitmap = new SKBitmap(imageInfo);
-        using var canvas = new SKCanvas(bitmap);
-
-        using (var discordBoxPaint = new SKPaint())
-        {
-            discordBoxPaint.IsAntialias = true;
-            discordBoxPaint.Color = new SKColor(88, 101, 242);
-
-            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 15, 15, discordBoxPaint);
-        }
-
-        var discordLogoBitmap = await _assets.GetBitmap("Assets/Images/Stats/DiscordLogo.png"); // don't dispose
-        canvas.DrawBitmap(discordLogoBitmap, 10,  (float)(imageInfo.Height - discordLogoBitmap!.Height) / 2);
-
-        while (discordTagTextBounds.Width + 10 + 2 * 15 + 50 > imageInfo.Width)
-        {
-            discordTagTextPaint.TextSize--;
-            discordTagTextPaint.MeasureText(username, ref discordTagTextBounds);
-        }
-
-        canvas.DrawText(username, 10 + 15 + discordLogoBitmap.Width,
-            (float)imageInfo.Height / 2 - discordTagTextBounds.MidY, discordTagTextPaint);
 
         return bitmap;
     }
