@@ -32,8 +32,7 @@ public class ShopImageController : ControllerBase
         var templateHash = string.Join("-", shop.Sections.Select(x => x.Id).ToList()).GetHashCode().ToString();
         await _namedLock.WaitAsync("shop_template");
 
-        var isNewShop = !_cache.TryGetValue("shop_hash", out string? hash) || hash != shop.Hash;
-        if (isNewShop) _cache.Set("shop_hash", shop.Hash);
+        var isNewShop = shop.NewShop ?? false;
 
         var templateBitmap = _cache.Get<SKBitmap?>($"shop_template_bmp_{templateHash}");
         var shopLocationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");

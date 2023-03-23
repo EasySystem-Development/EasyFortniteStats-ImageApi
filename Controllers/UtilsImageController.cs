@@ -68,19 +68,29 @@ public class UtilsImageController : ControllerBase
     [HttpPost("drop")]
     public async Task<IActionResult> GenerateDropImage(Drop drop)
     {
-        var bitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose TODO: Clear caching on bg change
+        var mapBitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose TODO: Clear caching on bg change
+        
+        if (mapBitmap == null)
+            return BadRequest("Map file doesn't exist.");
+        
+        var bitmap = new SKBitmap(mapBitmap.Width, mapBitmap.Height);
         using var canvas = new SKCanvas(bitmap);
+        
+        canvas.DrawBitmap(mapBitmap, 0, 0);
 
         var markerAmount = Directory.EnumerateFiles("Assets/Images/Map/Markers", "*.png").Count();
-        var markerBitmap = await _assets.GetBitmap($"Assets/Images/Map/Markers/{RandomNumberGenerator.GetInt32(markerAmount - 1)}.png");
+        var markerBitmap = await _assets.GetBitmap($"Assets/Images/Map/Markers/{RandomNumberGenerator.GetInt32(markerAmount - 1)}.png");  // don't dispose
     
-        const int worldRadius = 135000;
-        var mx = ((float)drop.Y + worldRadius) / (worldRadius * 2) * bitmap!.Width;
-        var my = (1 - ((float)drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height;
+        const int worldRadius = 150000;
+        const int xOffset = 80;
+        const int yOffset = 60;
+        
+        var mx = ((float)drop.Y + worldRadius) / (worldRadius * 2) * bitmap.Width + xOffset;
+        var my = (1 - ((float)drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height + yOffset;
 
         canvas.DrawBitmap(markerBitmap, mx - (float)markerBitmap!.Width / 2, my - markerBitmap.Height);
 
-        using var data = bitmap.Encode(SKEncodedImageFormat.Jpeg, 100);
+        var data = bitmap.Encode(SKEncodedImageFormat.Jpeg, 100);
         return File(data.AsStream(true), "image/jpeg");
     }
 }

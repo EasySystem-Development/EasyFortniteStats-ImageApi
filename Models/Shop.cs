@@ -5,14 +5,14 @@ namespace EasyFortniteStats_ImageApi.Models;
 
 public class Shop
 {
-    public string Hash { get; set; }
     public string Locale { get; set; }
     public string Date { get; set; }
     public string Title { get; set; }
     public string CreatorCodeTitle { get; set; }
     public string? CreatorCode { get; set; }
     public string? BackgroundImagePath { get; set; }
-    public ShopSection[] Sections { get; set; }
+    public ShopSection[] Sections { get; set; } 
+    public bool? NewShop { get; set; }
 }
 
 public class ShopSection
