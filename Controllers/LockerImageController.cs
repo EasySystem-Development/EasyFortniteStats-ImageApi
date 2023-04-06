@@ -38,20 +38,17 @@ public class AccountImageController : ControllerBase
         
         var qualityMapping = new Dictionary<int, int>
         {
-            {130, 100},
-            {200, 95},
-            {275, 90},
-            {325, 85},
-            {360, 80},
-            {400, 75},
-            {450, 70},
-            {500, 65},
+            {170, 100},
+            {270, 95},
+            {350, 90},
+            {440, 85},
+            {500, 80}
         };
         
         // Determine the quality of the image based on quality mapping and locker.Items.Length
         var quality = qualityMapping.FirstOrDefault(x => x.Key >= locker.Items.Length).Value;
         Console.WriteLine("Quality: " + quality + " for " + locker.Items.Length + " items");
-        var data = lockerBitmap.Encode(SKEncodedImageFormat.Jpeg, 65);
+        var data = lockerBitmap.Encode(SKEncodedImageFormat.Jpeg, quality);
         return File(data.AsStream(true), "image/jpeg");
     }
 
