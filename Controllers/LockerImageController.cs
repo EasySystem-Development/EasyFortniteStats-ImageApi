@@ -38,19 +38,10 @@ public class AccountImageController : ControllerBase
         
         var qualityMapping = new Dictionary<int, int>
         {
-            {130, 100},
-            {200, 95},
-            {275, 90},
-            {325, 85},
-            {360, 80},
-            {400, 75},
-            {450, 70},
-            {500, 65},
-            // {170, 100}, Values for 25mb limit
-            // {270, 95},
-            // {350, 90},
-            // {440, 85},
-            // {500, 80}
+            {200, 100},
+            {300, 95},
+            {400, 90},
+            {500, 85}
         };
         
         // Determine the quality of the image based on quality mapping and locker.Items.Length
