@@ -97,7 +97,9 @@ public class ShopImageController : ControllerBase
 
         var cornerRadius = imageInfo.Width * 0.03f;
 
+        Console.WriteLine("Background image path: {0}", shop.BackgroundImagePath ?? "null");
         var backgroundBitmap = await _assets.GetBitmap("data/images/{0}", shop.BackgroundImagePath); // don't dispose
+        Console.WriteLine("Background bitmap: {0}", backgroundBitmap is null ? "null" : "not null");
         if (backgroundBitmap is null)
         {
             using var paint = new SKPaint();
