@@ -58,7 +58,7 @@ public class StatsImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
-        var customBackgroundBitmap = await _assets.GetBitmap("data/images/shop/{0}", stats.BackgroundImagePath); // don't dispose TODO: Clear caching on bg change
+        var customBackgroundBitmap = await _assets.GetBitmap("data/images/{0}", stats.BackgroundImagePath); // don't dispose TODO: Clear caching on bg change
         if (customBackgroundBitmap is null)
         {
             using var backgroundPaint = new SKPaint();
