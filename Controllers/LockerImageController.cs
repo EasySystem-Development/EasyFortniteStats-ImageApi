@@ -165,7 +165,7 @@ public class AccountImageController : ControllerBase
                     item.Image = item.Image.Resize(new SKImageInfo(256, 256), SKFilterQuality.High);
                 }
                 
-                //_cache.Set($"locker_card_image_{item.Id}_{locker.Locale}", item.Image);
+                _cache.Set($"locker_card_image_{item.Id}_{locker.Locale}", item.Image);
 
                 itemCard = await GenerateItemCard(item);
             }
