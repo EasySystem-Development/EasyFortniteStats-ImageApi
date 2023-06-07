@@ -82,7 +82,7 @@ public class ShopImageController : ControllerBase
                 imageBytes = await client.GetByteArrayAsync(url, token);
                 
                 //cache image for 10 minutes
-                //_cache.Set($"shop_image_{entry.Id}", imageBytes, TimeSpan.FromMinutes(10));
+                _cache.Set($"shop_image_{entry.Id}", imageBytes, TimeSpan.FromMinutes(10));
             }
             
             entry.Image = SKBitmap.Decode(imageBytes);
