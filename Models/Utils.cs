@@ -3,8 +3,8 @@
 public class ProgressBar
 {
     public float Progress { get; set; }
-    
-    public string Percentage { get; set; }
+    public string Text { get; set; }
+    public string? BarText { get; set; }
     public string[] GradientColors { get; set; }
 }
 
