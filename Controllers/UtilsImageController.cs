@@ -20,8 +20,8 @@ public class UtilsImageController : ControllerBase
         _assets = assets;
     }
 
-    [HttpPost("seasonProgress")]
-    public async Task<IActionResult> GenerateSeasonProgressBar(ProgressBar progressBar)
+    [HttpPost("progressBar")]
+    public async Task<IActionResult> GenerateProgressBar(ProgressBar progressBar)
     {
         using var bitmap = new SKBitmap(568, 30);
         using var canvas = new SKCanvas(bitmap);
@@ -48,18 +48,29 @@ public class UtilsImageController : ControllerBase
             canvas.DrawRoundRect(0, (float)(bitmap.Height - 20) / 2, barWidth, 20, 10, 10, barPaint);
         }
 
-        var fortniteFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf");
+        var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf");
+        var textBounds = new SKRect();
 
-        using var barTextPaint = new SKPaint();
-        barTextPaint.IsAntialias = true;
-        barTextPaint.Color = SKColors.White;
-        barTextPaint.TextSize = 20;
-        barTextPaint.Typeface = fortniteFont;
+        using var textPaint = new SKPaint();
+        textPaint.IsAntialias = true;
+        textPaint.Color = SKColors.White;
+        textPaint.TextSize = 20;
+        textPaint.Typeface = segoeFont;
 
-        var barTextBounds = new SKRect();
-        barTextPaint.MeasureText(progressBar.Percentage, ref barTextBounds);
+        textPaint.MeasureText(progressBar.Text, ref textBounds);
+        canvas.DrawText(progressBar.Text, 500 + 5, (float)bitmap.Height / 2 - textBounds.MidY, textPaint);
+        
+        if (progressBar.BarText != null)
+        {
+            using var barTextPaint = new SKPaint();
+            barTextPaint.IsAntialias = true;
+            barTextPaint.Color = SKColors.White;
+            barTextPaint.TextSize = 15;
+            barTextPaint.Typeface = segoeFont;
 
-        canvas.DrawText(progressBar.Percentage, 505, (float)bitmap.Height / 2 - barTextBounds.MidY, barTextPaint);
+            barTextPaint.MeasureText(progressBar.BarText, ref textBounds);
+            canvas.DrawText(progressBar.BarText,  (int) ((500 - textBounds.Width) / 2), (float)bitmap.Height / 2 - textBounds.MidY, barTextPaint);
+        }
 
         var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
         return File(data.AsStream(true), "image/png");
