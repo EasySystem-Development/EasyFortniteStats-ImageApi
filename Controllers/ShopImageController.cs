@@ -17,12 +17,32 @@ public class ShopImageController : ControllerBase
     private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
 
+    private static readonly MemoryCacheEntryOptions ShopImageCacheOptions = new()
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+        PostEvictionCallbacks =
+        {
+            new PostEvictionCallbackRegistration
+            {
+                EvictionCallback = PostEvictionCallback
+            }
+        }
+    };
+
     public ShopImageController(IMemoryCache cache, IHttpClientFactory clientFactory, NamedLock namedLock, SharedAssets assets)
     {
         _cache = cache;
         _clientFactory = clientFactory;
         _namedLock = namedLock;
         _assets = assets;
+    }
+
+    private static void PostEvictionCallback(object key, object? value, EvictionReason reason, object? state)
+    {
+        if (value is null)
+            return;
+        var bmp = (SKBitmap)value;
+        bmp.Dispose();
     }
 
     [HttpPost]
@@ -74,18 +94,21 @@ public class ShopImageController : ControllerBase
         };
         await Parallel.ForEachAsync(entries, options, async (entry, token) =>
         {
-            var imageBytes = _cache.Get<byte[]?>($"shop_image_{entry.Id}");
-            if (imageBytes == null)
+            var cacheKey = $"shop_image_{entry.Id}";
+            var cachedBitmap = _cache.Get<SKBitmap?>(cacheKey);
+            if (cachedBitmap is not null)
             {
-                using var client = _clientFactory.CreateClient();
-                var url = entry.ImageUrl ?? entry.FallbackImageUrl;
-                imageBytes = await client.GetByteArrayAsync(url, token);
-                
-                //cache image for 10 minutes
-                _cache.Set($"shop_image_{entry.Id}", imageBytes, TimeSpan.FromMinutes(10));
+                entry.Image = cachedBitmap;
+                return;
             }
-            
-            entry.Image = SKBitmap.Decode(imageBytes);
+
+            using var client = _clientFactory.CreateClient();
+            var url = entry.ImageUrl ?? entry.FallbackImageUrl;
+            var imageBytes = await client.GetByteArrayAsync(url, token);
+            var bitmap = SKBitmap.Decode(imageBytes);
+            entry.Image = bitmap;
+            // cache image for 10 minutes & make sure it gets disposed after the period
+            _cache.Set(cacheKey, bitmap, ShopImageCacheOptions);
         });
     }
 
