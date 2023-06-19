@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 using Microsoft.Extensions.Caching.Memory;
 
@@ -9,8 +8,8 @@ namespace EasyFortniteStats_ImageApi;
 
 public class SharedAssets
 {
-    private static readonly MemoryCacheEntryOptions _cacheOptions = new() { Priority = CacheItemPriority.NeverRemove };
-    private static readonly SemaphoreSlim _semaphore = new(1);
+    private static readonly MemoryCacheEntryOptions CacheOptions = new() { Priority = CacheItemPriority.NeverRemove };
+    private static readonly SemaphoreSlim Semaphore = new(1);
     private readonly IMemoryCache _memoryCache;
 
     public SharedAssets(IMemoryCache memoryCache)
@@ -33,26 +32,26 @@ public class SharedAssets
         var cached = _memoryCache.Get<SKBitmap?>(key);
         if (cached is not null) return cached;
 
-        await _semaphore.WaitAsync();
+        await Semaphore.WaitAsync();
 
         cached = _memoryCache.Get<SKBitmap?>(key);
         if (cached is not null)
         {
-            _semaphore.Release();
+            Semaphore.Release();
             return cached;
         }
 
         if (!File.Exists(path))
         {
-            _memoryCache.Set(key, (SKBitmap?)null, _cacheOptions);
-            _semaphore.Release();
+            _memoryCache.Set(key, (SKBitmap?)null, CacheOptions);
+            Semaphore.Release();
             return null;
         }
 
-        var fileData = await File.ReadAllBytesAsync(path);
-        var bitmap = SKBitmap.Decode(fileData);
-        _memoryCache.Set(key, bitmap, _cacheOptions);
-        _semaphore.Release();
+        using var data = await ReadToSkData(path); // TODO: test if should dispose
+        var bitmap = SKBitmap.Decode(data);
+        _memoryCache.Set(key, bitmap, CacheOptions);
+        Semaphore.Release();
         return bitmap;
     }
 
@@ -62,30 +61,55 @@ public class SharedAssets
         var cached = _memoryCache.Get<SKTypeface>(key);
         if (cached is not null) return cached;
 
-        await _semaphore.WaitAsync();
+        await Semaphore.WaitAsync();
 
         cached = _memoryCache.Get<SKTypeface>(key);
         if (cached is not null)
         {
-            _semaphore.Release();
+            Semaphore.Release();
             return cached;
         }
 
-        var fileData = await File.ReadAllBytesAsync(path);
+        using var data = await ReadToSkData(path); // TODO: test if should dispose
+        var typeface = SKTypeface.FromData(data);
+        _memoryCache.Set(key, typeface, CacheOptions);
+        Semaphore.Release();
+        return typeface;
+    }
 
-        unsafe
+    private static async Task<SKData> ReadToSkData(string path)
+    {
+        UnmanagedMemoryStream? fileDataBufferStream = null;
+        FileStream? fileStream = null;
+
+        try
         {
-            var fileDataBuffer = NativeMemory.Alloc((nuint)fileData.Length);
-            fixed (byte* fileDataPtr = fileData)
+            fileStream = File.OpenRead(path);
+            var fileSize = fileStream.Length;
+            nint fileDataBufferPtr;
+
+            unsafe
             {
-                Unsafe.CopyBlockUnaligned(fileDataBuffer, fileDataPtr, (uint)fileData.Length);
+                var fileDataBuffer = NativeMemory.Alloc((nuint)fileSize);
+                fileDataBufferPtr = (nint)fileDataBuffer;
+                fileDataBufferStream = new UnmanagedMemoryStream((byte*)fileDataBuffer, fileSize, fileSize, FileAccess.ReadWrite);
             }
-            var data = SKData.Create(new IntPtr(fileDataBuffer), fileData.Length,
-                (address, _) => NativeMemory.Free(address.ToPointer()));
-            var typeface = SKTypeface.FromData(data);
-            _memoryCache.Set(key, typeface, _cacheOptions);
-            _semaphore.Release();
-            return typeface;
+
+            await fileStream.CopyToAsync(fileDataBufferStream);
+
+            unsafe
+            {
+                var data = SKData.Create(fileDataBufferPtr, (int)fileSize,
+                    (address, _) => NativeMemory.Free(address.ToPointer()));
+                return data;
+            }
+        }
+        finally
+        {
+            if (fileDataBufferStream is not null)
+                await fileDataBufferStream.DisposeAsync();
+            if (fileStream is not null)
+                await fileStream.DisposeAsync();
         }
     }
 }
