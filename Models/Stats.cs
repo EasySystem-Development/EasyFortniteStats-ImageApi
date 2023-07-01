@@ -36,10 +36,17 @@ public class CompetitiveStats
 public class RankedStatsEntry
 {
     public RankedType RankingType { get; set; }
-    public int Division { get; set; }
-    public string DivisionName { get; set; }
+    public int CurrentDivision { get; set; }
+    public string CurrentDivisionName { get; set; }
+    public int HighestDivision { get; set; }
+    public string HighestDivisionName { get; set; }
     public float Progress { get; set; }
     public string? Ranking { get; set; }
+    
+    public bool isUnranked()
+    {
+        return CurrentDivision == 0 && HighestDivision == 0 && Progress == 0.0;
+    }
 }
 
 public enum RankedType
