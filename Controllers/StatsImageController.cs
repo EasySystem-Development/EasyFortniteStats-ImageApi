@@ -26,9 +26,10 @@ public class StatsImageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post(Stats stats, string type = "normal")
+    public async Task<IActionResult> Post(Stats stats, StatsType type = StatsType.Normal)
     {
-        if (type is not ("normal" or "competitive")) return BadRequest("Invalid type");
+        if (type == StatsType.Normal && stats.Teams == null) return BadRequest("Normal stats type requested but no team stats were provided.");
+        if (type == StatsType.Competitive && stats.Competitive == null) return BadRequest("Competitive stats type requested but no competitive stats were provided.");
         
         var backgroundHash = stats.BackgroundImagePath is not null ? $"_{stats.BackgroundImagePath.GetHashCode()}" : "";
 
@@ -50,10 +51,10 @@ public class StatsImageController : ControllerBase
         return File(data.AsStream(true), "image/png");
     }
 
-    private async Task<SKBitmap> GenerateTemplate(Stats stats, string type)
+    private async Task<SKBitmap> GenerateTemplate(Stats stats, StatsType type)
     {
         SKImageInfo imageInfo;
-        imageInfo = type == "competitive" ? new SKImageInfo(1505, 624) : new SKImageInfo(1505, 777);
+        imageInfo = type == StatsType.Competitive ? new SKImageInfo(1505, 624) : new SKImageInfo(1505, 777);
 
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
@@ -106,7 +107,7 @@ public class StatsImageController : ControllerBase
         competitiveBoxTitlePaint.IsAntialias = true;
         competitiveBoxTitlePaint.Color = SKColors.White;
         competitiveBoxTitlePaint.Typeface = fortniteFont;
-        competitiveBoxTitlePaint.TextSize = 30;
+        competitiveBoxTitlePaint.TextSize = 25;
 
         using var boxTitlePaint = new SKPaint();
         boxTitlePaint.IsAntialias = true;
@@ -122,7 +123,7 @@ public class StatsImageController : ControllerBase
 
         var textBounds = new SKRect();
 
-        if (type == "competitive")
+        if (type == StatsType.Competitive)
         {
             var overallBoxRect = new SKRoundRect(SKRect.Create(50, 159, 437, 415), 30);
             DrawBlurredRoundRect(bitmap, overallBoxRect);
@@ -325,7 +326,7 @@ public class StatsImageController : ControllerBase
         titlePaint.MeasureText("Top 6", ref textBounds);
         canvas.DrawText("Top 6", 1316, 491 - textBounds.Top, titlePaint);
 
-        if (type.Equals("normal"))
+        if (type == StatsType.Normal)
         {
             // Teams
             var teamsBoxRect = new SKRoundRect(SKRect.Create(517, 619, 938, 108), 30);
@@ -357,7 +358,7 @@ public class StatsImageController : ControllerBase
         return bitmap;
     }
 
-    private async Task<SKBitmap> GenerateImage(Stats stats, string type, SKBitmap templateBitmap)
+    private async Task<SKBitmap> GenerateImage(Stats stats, StatsType type, SKBitmap templateBitmap)
     {
         var imageInfo = new SKImageInfo(templateBitmap.Width, templateBitmap.Height);
         var bitmap = new SKBitmap(imageInfo);
@@ -393,7 +394,7 @@ public class StatsImageController : ControllerBase
         divisionPaint.IsAntialias = true;
         divisionPaint.Color = SKColors.White;
         divisionPaint.Typeface = fortniteFont;
-        divisionPaint.TextSize = 29;
+        divisionPaint.TextSize = 35;
         divisionPaint.FilterQuality = SKFilterQuality.Medium;
 
         var textBounds = new SKRect();
@@ -413,27 +414,53 @@ public class StatsImageController : ControllerBase
             canvas.DrawBitmap(discordBoxBitmap, imageInfo.Width - 50 - discordBoxBitmap.Width, 39);
         }
 
-        if (type.Equals("competitive") && stats.Arena != null)
+        if (type == StatsType.Competitive)
         {
-            var hypePoints = stats.Arena.HypePoints ?? "N/A";
-            valuePaint.MeasureText(hypePoints, ref textBounds);
-            canvas.DrawText(hypePoints, 70, 189 - textBounds.Top, valuePaint);
 
-            var divisionIconBitmap = await _assets.GetBitmap(
-                $"Assets/Images/Stats/DivisionIcons/{Regex.Match(stats.Arena.Division, @"\d+").Value}.png"); // don't dispose
-            canvas.DrawBitmap(divisionIconBitmap, 219, 139);
+            var rankedTypeX = new Dictionary<RankedType, int>
+            {
+                { RankedType.BatteRoyale, 50 },
+                { RankedType.ZeroBuild, 219 },
+            };
+            foreach (var rankedStatsEntry in stats.Competitive!.RankedStatsEntries)
+            {
+                var x = rankedTypeX[rankedStatsEntry.RankingType];
+                var divisionIconBitmap = await _assets.GetBitmap($"Assets/Images/Stats/DivisionIcons/{rankedStatsEntry.Division}.png"); // don't dispose
+                canvas.DrawBitmap(divisionIconBitmap, x - divisionIconBitmap!.Width / 2, 139);
+                
+                divisionPaint.MeasureText(rankedStatsEntry.DivisionName, ref textBounds);
+                canvas.DrawText(rankedStatsEntry.DivisionName, x - (int) (textBounds.Width / 2), 189 - textBounds.Top, divisionPaint);
+                
+                var battlePassLevel = ((int)stats.BattlePassLevel).ToString();
+                valuePaint.MeasureText(battlePassLevel, ref textBounds);
+                canvas.DrawText(battlePassLevel, 70, 479 - textBounds.Top, valuePaint);
 
-            divisionPaint.MeasureText(stats.Arena.Division, ref textBounds);
-            canvas.DrawText(stats.Arena.Division, 326, 189 - textBounds.Top, divisionPaint);
+                var battlePassBarWidth = (int)(309 * (stats.BattlePassLevel - (int)stats.BattlePassLevel));
+                if (battlePassBarWidth > 0)
+                {
+                    battlePassBarWidth = battlePassBarWidth < 20 ? 20 : battlePassBarWidth;
+                    using var battlePassBarPaint = new SKPaint();
+                    battlePassBarPaint.IsAntialias = true;
+                    battlePassBarPaint.Shader = SKShader.CreateLinearGradient(
+                        new SKPoint(158, 0),
+                        new SKPoint(158 + battlePassBarWidth, 0),
+                        new[] { SKColor.Parse(stats.BattlePassLevelBarColors[0]), SKColor.Parse(stats.BattlePassLevelBarColors[1])},
+                        new float[] {0, 1},
+                        SKShaderTileMode.Repeat);
 
-            titlePaint.MeasureText(stats.Arena.League, ref textBounds);
-            canvas.DrawText(stats.Arena.League, 326, 215 - textBounds.Top, titlePaint);
+                    canvas.DrawRoundRect(158, 483, battlePassBarWidth, 20, 10, 10, battlePassBarPaint);
+                }
+                
+                
+                
+                
+            }
 
-            valuePaint.MeasureText(stats.Arena.Earnings, ref textBounds);
-            canvas.DrawText(stats.Arena.Earnings, 70, 319 - textBounds.Top, valuePaint);
+            valuePaint.MeasureText(stats.Competitive.Earnings, ref textBounds);
+            canvas.DrawText(stats.Competitive.Earnings, 70, 319 - textBounds.Top, valuePaint);
 
-            valuePaint.MeasureText(stats.Arena.PowerRanking, ref textBounds);
-            canvas.DrawText(stats.Arena.PowerRanking, 250, 319 - textBounds.Top, valuePaint);
+            valuePaint.MeasureText(stats.Competitive.PowerRanking, ref textBounds);
+            canvas.DrawText(stats.Competitive.PowerRanking, 250, 319 - textBounds.Top, valuePaint);
 
             valuePaint.MeasureText(stats.Overall.MatchesPlayed, ref textBounds);
             canvas.DrawText(stats.Overall.MatchesPlayed, 70, 396 - textBounds.Top, valuePaint);
@@ -572,7 +599,7 @@ public class StatsImageController : ControllerBase
         valuePaint.MeasureText(stats.Squads.Top6, ref textBounds);
         canvas.DrawText(stats.Squads.Top6, 1316, 518 - textBounds.Top, valuePaint);
 
-        if (type == "normal" && stats.Teams != null)
+        if (type == StatsType.Normal)
         {
             valuePaint.MeasureText(stats.Teams.MatchesPlayed, ref textBounds);
             canvas.DrawText(stats.Teams.MatchesPlayed, 537, 671 - textBounds.Top, valuePaint);

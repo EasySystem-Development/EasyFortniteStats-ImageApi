@@ -1,5 +1,12 @@
 ﻿namespace EasyFortniteStats_ImageApi.Models;
 
+// String Enum StatsType
+public enum StatsType
+{
+    Normal = 0,
+    Competitive = 1,
+}
+
 public class Stats
 {
     public string PlayerName { get; set; }
@@ -10,7 +17,7 @@ public class Stats
     public Playtime Playtime { get; set; }
     public float BattlePassLevel { get; set; }
     public string[] BattlePassLevelBarColors { get; set; }
-    public ArenaStats? Arena { get; set; }
+    public CompetitiveStats? Competitive { get; set; }
     public StatsEntry Overall { get; set; }
     public StatsEntry Solo { get; set; }
     public StatsEntry Duos { get; set; }
@@ -19,14 +26,28 @@ public class Stats
     public StatsEntry? Teams { get; set; }
 }
 
-public class ArenaStats
+public class CompetitiveStats
 {
-    public string? HypePoints { get; set; }
-    public string Division { get; set; }
-    public string League { get; set; }
+    public RankedStatsEntry[] RankedStatsEntries { get; set; }
     public string Earnings { get; set; }
     public string PowerRanking { get; set; }
 }
+
+public class RankedStatsEntry
+{
+    public RankedType RankingType { get; set; }
+    public int Division { get; set; }
+    public string DivisionName { get; set; }
+    public float Progress { get; set; }
+    public string? Ranking { get; set; }
+}
+
+public enum RankedType
+{
+    BatteRoyale = 0,
+    ZeroBuild = 1,
+}
+
 
 public class StatsEntry
 {
