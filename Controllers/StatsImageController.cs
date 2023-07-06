@@ -142,6 +142,12 @@ public class StatsImageController : ControllerBase
             splitPaint.IsAntialias = true;
             splitPaint.Color = SKColors.White.WithAlpha((int) (.5 * 255));
             canvas.DrawRoundRect(267, 192, 1, 77, 1, 1, splitPaint);
+            
+            var buildLogo = await _assets.GetBitmap("Assets/Images/Stats/BuildLogo.png"); // don't dispose
+            canvas.DrawBitmap(buildLogo, new SKPoint(115, 277));
+            
+            var zeroBuildLogo = await _assets.GetBitmap("Assets/Images/Stats/ZeroBuildLogo.png"); // don't dispose
+            canvas.DrawBitmap(zeroBuildLogo, new SKPoint(317, 277));
 
             competitiveBoxTitlePaint.MeasureText("OVERALL", ref textBounds);
             canvas.DrawText("OVERALL", 211, 305 - textBounds.Top, competitiveBoxTitlePaint);
