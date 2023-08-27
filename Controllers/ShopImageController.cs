@@ -265,11 +265,12 @@ public class ShopImageController : ControllerBase
                 pricePaint.TextAlign = SKTextAlign.Right;
 
                 var priceTextBounds = new SKRect();
-                pricePaint.MeasureText(shop.Title, ref priceTextBounds);
 
+                var priceValue = Convert.ToString(shopEntry?.FinalPrice);
+                pricePaint.MeasureText(priceValue, ref priceTextBounds);
                 var pricePoint = new SKPoint(entryLocationData.Price.X,
                     entryLocationData.Price.Y - priceTextBounds.Top);
-                canvas.DrawText(Convert.ToString(shopEntry?.FinalPrice), pricePoint, pricePaint);
+                canvas.DrawText(priceValue, pricePoint, pricePaint);
 
                 // Draw strikeout old price if item is discounted
                 if (shopEntry?.FinalPrice != shopEntry?.RegularPrice)
@@ -282,11 +283,12 @@ public class ShopImageController : ControllerBase
                     oldPricePaint.TextAlign = SKTextAlign.Right;
 
                     var oldPriceTextBounds = new SKRect();
-                    oldPricePaint.MeasureText(shop.Title, ref oldPriceTextBounds);
 
+                    var oldPriceValue = Convert.ToString(shopEntry?.RegularPrice);
+                    oldPricePaint.MeasureText(oldPriceValue, ref oldPriceTextBounds);
                     var oldPricePoint = new SKPoint(entryLocationData.Price.X - oldPriceTextBounds.Width - 3,
                         entryLocationData.Price.Y - priceTextBounds.Top);
-                    canvas.DrawText(Convert.ToString(shopEntry?.RegularPrice), oldPricePoint, oldPricePaint);
+                    canvas.DrawText(oldPriceValue, oldPricePoint, oldPricePaint);
 
                     // Draw the strikeout line
                     using var strikePaint = new SKPaint();
