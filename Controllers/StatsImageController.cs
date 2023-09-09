@@ -457,31 +457,31 @@ public class StatsImageController : ControllerBase
                 if (rankedStatsEntry.Ranking == null)
                 {
                     const int maxBarWidth = 130, barHeight = 6;
-                    var barX = x - maxBarWidth / 2;
+                    var progressText = $"{(int) (rankedStatsEntry.Progress * 100)}%";
+                    rankProgressPaint.MeasureText(progressText, ref textBounds);
+                    var barX = x - textBounds.Width / 2 - maxBarWidth / 2;
                     
                     using var barBackgroundPaint = new SKPaint();
                     barBackgroundPaint.IsAntialias = true;
                     barBackgroundPaint.Color = SKColors.White.WithAlpha((int) (.2 * 255));
                     canvas.DrawRoundRect(barX, 250, maxBarWidth, barHeight, 10, 10, barBackgroundPaint);
                     
-                    var battlePassBarWidth = (int)(maxBarWidth * rankedStatsEntry.Progress);
-                    if (battlePassBarWidth > 0)
+                    var rankProgressBarWidth = (int)(maxBarWidth * rankedStatsEntry.Progress);
+                    if (rankProgressBarWidth > 0)
                     {
-                        battlePassBarWidth = Math.Max(battlePassBarWidth, barHeight);
+                        rankProgressBarWidth = Math.Max(rankProgressBarWidth, barHeight);
                         using var battlePassBarPaint = new SKPaint();
                         battlePassBarPaint.IsAntialias = true;
                         battlePassBarPaint.Shader = SKShader.CreateLinearGradient(
                             new SKPoint(barX, 0),
-                            new SKPoint(barX + battlePassBarWidth, 0),
+                            new SKPoint(barX + rankProgressBarWidth, 0),
                             new[] { SKColor.Parse(stats.BattlePassLevelBarColors[0]), SKColor.Parse(stats.BattlePassLevelBarColors[1])},
                             new float[] {0, 1},
                             SKShaderTileMode.Repeat);
-                        canvas.DrawRoundRect(barX, 250, battlePassBarWidth, barHeight, 10, 10, battlePassBarPaint);
+                        canvas.DrawRoundRect(barX, 250, rankProgressBarWidth, barHeight, 10, 10, battlePassBarPaint);
                     }
                     
-                    var progressText = $"{(int) (rankedStatsEntry.Progress * 100)}%";
-                    rankProgressPaint.MeasureText(progressText, ref textBounds);
-                    canvas.DrawText(progressText, x + maxBarWidth / 2 + 7, 247 - textBounds.Top, rankProgressPaint);
+                    canvas.DrawText(progressText, barX + maxBarWidth + 7, 247 - textBounds.Top, rankProgressPaint);
                 }
                 else
                 {
