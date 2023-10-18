@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using EasyFortniteStats_ImageApi.Models;
+﻿using EasyFortniteStats_ImageApi.Models;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
