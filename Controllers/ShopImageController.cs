@@ -1,4 +1,5 @@
-﻿using EasyFortniteStats_ImageApi.Models;
+﻿using System.Globalization;
+using EasyFortniteStats_ImageApi.Models;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,7 +25,7 @@ public class ShopImageController : ControllerBase
         {
             new PostEvictionCallbackRegistration
             {
-                EvictionCallback = PostEvictionCallback
+                EvictionCallback = ImageUtils.BitmapPostEvictionCallback
             }
         }
     };
@@ -37,33 +38,25 @@ public class ShopImageController : ControllerBase
         _assets = assets;
     }
 
-    private static void PostEvictionCallback(object key, object? value, EvictionReason reason, object? state)
-    {
-        if (value is null)
-            return;
-        var bmp = (SKBitmap)value;
-        bmp.Dispose();
-    }
-
     [HttpPost]
     public async Task<IActionResult> Post(Shop shop)
     {
         // Hash the section ids
-        var templateHash = string.Join("-", shop.Sections.Select(x => x.Id).ToList()).GetHashCode().ToString();
+        var templateHash = string.Join('-', shop.Sections.Select(x => x.Id)).GetHashCode().ToString();
         await _namedLock.WaitAsync("shop_template");
 
         var isNewShop = shop.NewShop ?? false;
 
         var templateBitmap = _cache.Get<SKBitmap?>($"shop_template_bmp_{templateHash}");
         var shopLocationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");
-        if (isNewShop || templateBitmap == null)
+        if (isNewShop || templateBitmap is null)
         {
             await PrefetchImages(shop);
             var templateGenerationResult = await GenerateTemplate(shop);
             templateBitmap = templateGenerationResult.Item2;
             shopLocationData = templateGenerationResult.Item1;
-            _cache.Set($"shop_template_bmp_{templateHash}", templateBitmap);
-            _cache.Set($"shop_location_data_{templateHash}", shopLocationData);
+            _cache.Set($"shop_template_bmp_{templateHash}", templateBitmap, ShopImageCacheOptions);
+            _cache.Set($"shop_location_data_{templateHash}", shopLocationData, ShopImageCacheOptions);
         }
 
         _namedLock.Release("shop_template");
@@ -75,7 +68,7 @@ public class ShopImageController : ControllerBase
         if (isNewShop || localeTemplateBitmap == null)
         {
             localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
-            _cache.Set($"shop_template_{shop.Locale}_bmp", localeTemplateBitmap);
+            _cache.Set($"shop_template_{shop.Locale}_bmp", localeTemplateBitmap, ShopImageCacheOptions);
         }
         _namedLock.Release(lockName);
 
@@ -104,8 +97,10 @@ public class ShopImageController : ControllerBase
 
             using var client = _clientFactory.CreateClient();
             var url = entry.ImageUrl ?? entry.FallbackImageUrl;
-            var imageBytes = await client.GetByteArrayAsync(url, token);
-            var bitmap = SKBitmap.Decode(imageBytes);
+            //var imageBytes = await client.GetByteArrayAsync(url, token);
+            using var imageResponse = await client.GetAsync(url, token);
+            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync(token);
+            var bitmap = SKBitmap.Decode(imageStream);
             entry.Image = bitmap;
             // cache image for 10 minutes & make sure it gets disposed after the period
             _cache.Set(cacheKey, bitmap, ShopImageCacheOptions);
@@ -208,7 +203,7 @@ public class ShopImageController : ControllerBase
             datePaint.MeasureText(shop.Title, ref dateTextBounds);
 
             var datePoint = new SKPoint(
-                100 + shopTitleWidth / 2,
+                100 + shopTitleWidth / 2f,
                 300 - dateTextBounds.Top);
             canvas.DrawText(shop.Date, datePoint, datePaint);
         }
@@ -236,7 +231,9 @@ public class ShopImageController : ControllerBase
 
             foreach (var entryLocationData in sectionLocationData.Entries)
             {
-                var shopEntry = shopSection?.Entries.FirstOrDefault(x => x.Id == entryLocationData.Id);
+                var shopEntry = shopSection?.Entries?.FirstOrDefault(x => x.Id == entryLocationData.Id);
+                if (shopEntry is null)
+                    continue;
 
                 // Draw the shop entry name
                 using (var entryNamePaint = new SKPaint())
@@ -248,12 +245,12 @@ public class ShopImageController : ControllerBase
                     entryNamePaint.TextAlign = SKTextAlign.Center;
 
                     var entryNameTextBounds = new SKRect();
-                    entryNamePaint.MeasureText(shopEntry?.Name, ref entryNameTextBounds);
+                    entryNamePaint.MeasureText(shopEntry.Name, ref entryNameTextBounds);
 
                     var textPoint = new SKPoint(
-                        entryLocationData.Name.X + (int)entryLocationData.Name.Width! / 2,
+                        entryLocationData.Name.X + entryLocationData.Name.Width!.Value / 2f,
                         entryLocationData.Name.Y + entryNameTextBounds.Height);
-                    canvas.DrawText(shopEntry?.Name, textPoint, entryNamePaint);
+                    canvas.DrawText(shopEntry.Name, textPoint, entryNamePaint);
                 }
 
                 // Draw the shop entry price
@@ -269,10 +266,11 @@ public class ShopImageController : ControllerBase
 
                 var pricePoint = new SKPoint(entryLocationData.Price.X,
                     entryLocationData.Price.Y - priceTextBounds.Top);
-                canvas.DrawText(Convert.ToString(shopEntry?.FinalPrice), pricePoint, pricePaint);
+                var finalPriceText = shopEntry.FinalPrice.ToString(CultureInfo.InvariantCulture);
+                canvas.DrawText(finalPriceText, pricePoint, pricePaint);
 
                 // Draw strikeout old price if item is discounted
-                if (shopEntry?.FinalPrice != shopEntry?.RegularPrice)
+                if (shopEntry.FinalPrice != shopEntry.RegularPrice)
                 {
                     using var oldPricePaint = new SKPaint();
                     oldPricePaint.IsAntialias = true;
@@ -286,7 +284,8 @@ public class ShopImageController : ControllerBase
 
                     var oldPricePoint = new SKPoint(entryLocationData.Price.X - oldPriceTextBounds.Width - 3,
                         entryLocationData.Price.Y - priceTextBounds.Top);
-                    canvas.DrawText(Convert.ToString(shopEntry?.RegularPrice), oldPricePoint, oldPricePaint);
+                    var regularPriceText = shopEntry.RegularPrice.ToString(CultureInfo.InvariantCulture);
+                    canvas.DrawText(regularPriceText, oldPricePoint, oldPricePaint);
 
                     // Draw the strikeout line
                     using var strikePaint = new SKPaint();
@@ -299,7 +298,7 @@ public class ShopImageController : ControllerBase
                     canvas.DrawLine(strikeStart, strikeEnd, strikePaint);
                 }
 
-                if (shopEntry is {BannerText: { }, BannerColor: { }})
+                if (shopEntry is {BannerText: not null, BannerColor: not null})
                 {
                     using var bannerBitmap = await GenerateBanner(shopEntry.BannerText, shopEntry.BannerColor);
                     canvas.DrawBitmap(bannerBitmap, entryLocationData.Banner!.X, entryLocationData.Banner.Y);
@@ -349,7 +348,8 @@ public class ShopImageController : ControllerBase
                 using var sectionBitmap = new SKBitmap(sectionImageInfo);
                 using var sectionCanvas = new SKCanvas(sectionBitmap);
 
-                int sectionX = 100 + i * (50 + sectionWidths[0].Max() * 286 + (sectionWidths[0].Max() - 1) * 20) , sectionY = 100 + 270 + 100 + (82 + 494) * j;
+                var sectionX = 100 + i * (50 + sectionWidths[0].Max() * 286 + (sectionWidths[0].Max() - 1) * 20);
+                var sectionY = 100 + 270 + 100 + (82 + 494) * j;
                 var shopEntryData = new List<ShopEntryLocationData>();
 
                 var k = 0f;
@@ -574,7 +574,7 @@ public class ShopImageController : ControllerBase
 
         var textBounds = new SKRect();
         paint.MeasureText("+", ref textBounds);
-        
+
         canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - 15, paint);
 
         return bitmap;
