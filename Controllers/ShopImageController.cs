@@ -263,7 +263,7 @@ public class ShopImageController : ControllerBase
 
                 var priceTextBounds = new SKRect();
 
-                var priceValue = Convert.ToString(shopEntry?.FinalPrice);
+                var priceValue = shopEntry.FinalPrice.ToString();
                 pricePaint.MeasureText(priceValue, ref priceTextBounds);
                 var pricePoint = new SKPoint(entryLocationData.Price.X,
                     entryLocationData.Price.Y - priceTextBounds.Top);
@@ -281,7 +281,7 @@ public class ShopImageController : ControllerBase
 
                     var oldPriceTextBounds = new SKRect();
 
-                    var oldPriceValue = Convert.ToString(shopEntry?.RegularPrice);
+                    var oldPriceValue = shopEntry.RegularPrice.ToString();
                     oldPricePaint.MeasureText(oldPriceValue, ref oldPriceTextBounds);
                     var oldPricePoint = new SKPoint(entryLocationData.Price.X - oldPriceTextBounds.Width - 3,
                         entryLocationData.Price.Y - priceTextBounds.Top);

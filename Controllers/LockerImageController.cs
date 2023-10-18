@@ -210,7 +210,7 @@ public class AccountImageController : ControllerBase
         canvas.DrawBitmap(rarityStripe, new SKPoint(0, imageInfo.Height - overlayImage.Height - rarityStripe.Height + 5));
         // TODO: Fix Transparency issues
 
-        var fortniteFont = await _assets.GetFont(@"Assets/Fonts/Fortnite.ttf"); // don't dispose
+        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
 
         using var namePaint = new SKPaint();
         namePaint.IsAntialias = true;
