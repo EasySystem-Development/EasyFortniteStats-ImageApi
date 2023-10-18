@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+
 using SkiaSharp;
 
 namespace EasyFortniteStats_ImageApi.Models;
@@ -22,7 +23,7 @@ public class LockerItem
     public string ImageUrl { get; set; }
     public SourceType SourceType { get; set; }
     public string Source { get; set; }
-    
+
     [JsonIgnore] public SKBitmap? Image { get; set; }
 }
 

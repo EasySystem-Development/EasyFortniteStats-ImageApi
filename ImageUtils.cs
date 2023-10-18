@@ -1,10 +1,18 @@
-﻿using SkiaSharp;
+﻿using Microsoft.Extensions.Caching.Memory;
+using SkiaSharp;
 
 namespace EasyFortniteStats_ImageApi;
 
 public class ImageUtils
 {
-    
+    public static void BitmapPostEvictionCallback(object key, object? value, EvictionReason reason, object? state)
+    {
+        Console.WriteLine($"MemoryCache: Disposing {key} after 10m");
+        if (value is null) return;
+        var bmp = (SKBitmap)value;
+        bmp.Dispose();
+    }
+
     public static async Task<SKBitmap> GenerateDiscordBox(SharedAssets _assets, string username, float resizeFactor = 1.0f)
     {
         var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
