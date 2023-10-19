@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using EasyFortniteStats_ImageApi.Models;
+﻿using EasyFortniteStats_ImageApi.Models;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -56,7 +55,7 @@ public class ShopImageController : ControllerBase
             templateBitmap = templateGenerationResult.Item2;
             shopLocationData = templateGenerationResult.Item1;
             _cache.Set($"shop_template_bmp_{templateHash}", templateBitmap, ShopImageCacheOptions);
-            _cache.Set($"shop_location_data_{templateHash}", shopLocationData, ShopImageCacheOptions);
+            _cache.Set($"shop_location_data_{templateHash}", shopLocationData, TimeSpan.FromMinutes(10));
         }
 
         _namedLock.Release("shop_template");
