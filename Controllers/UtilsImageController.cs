@@ -20,6 +20,13 @@ public class UtilsImageController : ControllerBase
         _assets = assets;
     }
 
+    [HttpGet("collectGarbage")]
+    public IActionResult CollectGarbage()
+    {
+        GC.Collect();
+        return NoContent();
+    }
+
     [HttpPost("progressBar")]
     public async Task<IActionResult> GenerateProgressBar(ProgressBar progressBar)
     {
@@ -59,7 +66,7 @@ public class UtilsImageController : ControllerBase
 
         textPaint.MeasureText(progressBar.Text, ref textBounds);
         canvas.DrawText(progressBar.Text, 500 + 5, (float)bitmap.Height / 2 - textBounds.MidY, textPaint);
-        
+
         if (progressBar.BarText != null)
         {
             using var barTextPaint = new SKPaint();
@@ -80,22 +87,22 @@ public class UtilsImageController : ControllerBase
     public async Task<IActionResult> GenerateDropImage(Drop drop)
     {
         var mapBitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose TODO: Clear caching on bg change
-        
+
         if (mapBitmap == null)
             return BadRequest("Map file doesn't exist.");
-        
+
         var bitmap = new SKBitmap(mapBitmap.Width, mapBitmap.Height);
         using var canvas = new SKCanvas(bitmap);
-        
+
         canvas.DrawBitmap(mapBitmap, 0, 0);
 
         var markerAmount = Directory.EnumerateFiles("Assets/Images/Map/Markers", "*.png").Count();
         var markerBitmap = await _assets.GetBitmap($"Assets/Images/Map/Markers/{RandomNumberGenerator.GetInt32(markerAmount - 1)}.png");  // don't dispose
-    
+
         const int worldRadius = 150000;
         const int xOffset = 80;
         const int yOffset = 60;
-        
+
         var mx = ((float)drop.Y + worldRadius) / (worldRadius * 2) * bitmap.Width + xOffset;
         var my = (1 - ((float)drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height + yOffset;
 
