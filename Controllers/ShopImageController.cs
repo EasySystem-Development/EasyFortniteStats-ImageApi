@@ -42,34 +42,48 @@ public class ShopImageController : ControllerBase
     {
         // Hash the section ids
         var templateHash = string.Join('-', shop.Sections.Select(x => x.Id)).GetHashCode().ToString();
-        await _namedLock.WaitAsync("shop_template");
-
         var isNewShop = shop.NewShop ?? false;
 
-        var templateBitmap = _cache.Get<SKBitmap?>($"shop_template_bmp_{templateHash}");
-        var shopLocationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");
-        if (isNewShop || templateBitmap is null)
+        SKBitmap? templateBitmap;
+        ShopSectionLocationData[]? shopLocationData;
+
+        await _namedLock.WaitAsync("shop_template");
+        try
         {
-            await PrefetchImages(shop);
-            var templateGenerationResult = await GenerateTemplate(shop);
-            templateBitmap = templateGenerationResult.Item2;
-            shopLocationData = templateGenerationResult.Item1;
-            _cache.Set($"shop_template_bmp_{templateHash}", templateBitmap, ShopImageCacheOptions);
-            _cache.Set($"shop_location_data_{templateHash}", shopLocationData, TimeSpan.FromMinutes(10));
+            templateBitmap = _cache.Get<SKBitmap?>($"shop_template_bmp_{templateHash}");
+            shopLocationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");
+            if (isNewShop || templateBitmap is null)
+            {
+                await PrefetchImages(shop);
+                var templateGenerationResult = await GenerateTemplate(shop);
+                templateBitmap = templateGenerationResult.Item2;
+                shopLocationData = templateGenerationResult.Item1;
+                _cache.Set($"shop_template_bmp_{templateHash}", templateBitmap, ShopImageCacheOptions);
+                _cache.Set($"shop_location_data_{templateHash}", shopLocationData, TimeSpan.FromMinutes(10));
+            }
+        }
+        finally
+        {
+            _namedLock.Release("shop_template");
         }
 
-        _namedLock.Release("shop_template");
+        SKBitmap? localeTemplateBitmap;
 
         var lockName = $"shop_template_{shop.Locale}";
         await _namedLock.WaitAsync(lockName);
-
-        var localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{shop.Locale}_bmp");
-        if (isNewShop || localeTemplateBitmap == null)
+        try
         {
-            localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
-            _cache.Set($"shop_template_{shop.Locale}_bmp", localeTemplateBitmap, ShopImageCacheOptions);
+            localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{shop.Locale}_bmp");
+            if (isNewShop || localeTemplateBitmap == null)
+            {
+                localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
+                _cache.Set($"shop_template_{shop.Locale}_bmp", localeTemplateBitmap, ShopImageCacheOptions);
+            }
         }
-        _namedLock.Release(lockName);
+        finally
+        {
+            _namedLock.Release(lockName);
+        }
 
         using var localeTemplateBitmapCopy = localeTemplateBitmap.Copy();
         using var shopImage = await GenerateShopImage(shop, localeTemplateBitmapCopy);
@@ -114,9 +128,7 @@ public class ShopImageController : ControllerBase
 
         var cornerRadius = imageInfo.Width * 0.03f;
 
-        Console.WriteLine("Background image path: {0}", shop.BackgroundImagePath ?? "null");
         var backgroundBitmap = await _assets.GetBitmap("data/images/{0}", shop.BackgroundImagePath); // don't dispose
-        Console.WriteLine("Background bitmap: {0}", backgroundBitmap is null ? "null" : "not null");
         if (backgroundBitmap is null)
         {
             using var paint = new SKPaint();
