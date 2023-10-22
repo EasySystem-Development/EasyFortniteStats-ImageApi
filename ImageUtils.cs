@@ -7,7 +7,7 @@ public class ImageUtils
 {
     public static void BitmapPostEvictionCallback(object key, object? value, EvictionReason reason, object? state)
     {
-        Console.WriteLine($"MemoryCache: Disposing {key} after 10m");
+        Console.WriteLine($"MemoryCache: Disposing {key}. Reason: {reason}");
         if (value is null) return;
         var bmp = (SKBitmap)value;
         bmp.Dispose();
