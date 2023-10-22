@@ -52,8 +52,14 @@ public class AccountImageController : ControllerBase
     {
         var lockKey = $"locker_{locker.RequestId}";
         await _namedLock.WaitAsync(lockKey);
-        await GenerateItemCards(locker);
-        _namedLock.Release(lockKey);
+        try
+        {
+            await GenerateItemCards(locker);
+        }
+        finally
+        {
+            _namedLock.Release(lockKey);
+        }
         using var lockerBitmap = await GenerateImage(locker);
 
         // Determine the quality of the image based on quality mapping and locker.Items.Length
