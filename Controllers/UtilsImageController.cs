@@ -99,9 +99,9 @@ public class UtilsImageController : ControllerBase
         var markerAmount = Directory.EnumerateFiles("Assets/Images/Map/Markers", "*.png").Count();
         var markerBitmap = await _assets.GetBitmap($"Assets/Images/Map/Markers/{RandomNumberGenerator.GetInt32(markerAmount - 1)}.png");  // don't dispose
 
-        const int worldRadius = 150000;
-        const int xOffset = 80;
-        const int yOffset = 60;
+        const int worldRadius = 130000;
+        const int xOffset = 175;
+        const int yOffset = 220;
 
         var mx = ((float)drop.Y + worldRadius) / (worldRadius * 2) * bitmap.Width + xOffset;
         var my = (1 - ((float)drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height + yOffset;
