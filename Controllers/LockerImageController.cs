@@ -50,6 +50,7 @@ public class AccountImageController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Post(Locker locker)
     {
+        Console.WriteLine($"Locker image request. Name = {locker.PlayerName}, Locale = {locker.Locale}, Items = {locker.Items.Length}");
         var lockKey = $"locker_{locker.RequestId}";
         await _namedLock.WaitAsync(lockKey);
         try
