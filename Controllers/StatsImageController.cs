@@ -26,6 +26,7 @@ public class StatsImageController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Post(Stats stats, StatsType type = StatsType.Normal)
     {
+        Console.WriteLine($"Stats image request. Name = {stats.PlayerName}, Type = {type}");
         if (type == StatsType.Normal && stats.Teams == null) return BadRequest("Normal stats type requested but no team stats were provided.");
         if (type == StatsType.Competitive && stats.Competitive == null) return BadRequest("Competitive stats type requested but no competitive stats were provided.");
         
