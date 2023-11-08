@@ -190,6 +190,8 @@ public class ShopImageController : ControllerBase
         int shopTitleWidth;
         using (var shopTitlePaint = new SKPaint())
         {
+            // TODO: Make dynamic. Solve narrow layouts
+            shop.Title = "SHOP";
             shopTitlePaint.IsAntialias = true;
             shopTitlePaint.TextSize = 250.0f;
             shopTitlePaint.Color = SKColors.White;
