@@ -101,22 +101,34 @@ public class ShopImageController : ControllerBase
         await Parallel.ForEachAsync(entries, options, async (entry, token) =>
         {
             var cacheKey = $"shop_image_{entry.Id}";
+            await _namedLock.WaitAsync(cacheKey, token);
             var cachedBitmap = _cache.Get<SKBitmap?>(cacheKey);
             if (cachedBitmap is not null)
             {
                 entry.Image = cachedBitmap;
+                _namedLock.Release(cacheKey);
                 return;
             }
 
             using var client = _clientFactory.CreateClient();
             var url = entry.ImageUrl ?? entry.FallbackImageUrl;
-            //var imageBytes = await client.GetByteArrayAsync(url, token);
-            using var imageResponse = await client.GetAsync(url, token);
-            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync(token);
-            var bitmap = SKBitmap.Decode(imageStream);
+            SKBitmap bitmap;
+
+            try
+            {
+                var imageBytes = await client.GetByteArrayAsync(url, token);
+                bitmap = SKBitmap.Decode(imageBytes);
+                Console.WriteLine(bitmap.Height);
+            }
+            catch (Exception ex)
+            {
+                bitmap = new SKBitmap(512, 512);
+            }
+
             entry.Image = bitmap;
             // cache image for 10 minutes & make sure it gets disposed after the period
             _cache.Set(cacheKey, bitmap, ShopImageCacheOptions);
+            _namedLock.Release(cacheKey);
         });
     }
 
@@ -535,11 +547,15 @@ public class ShopImageController : ControllerBase
             (int) Math.Ceiling(shopEntry.Size) * 286 + ((int) Math.Ceiling(shopEntry.Size) - 1) * 20,
             Math.Floor(shopEntry.Size).Equals(shopEntry.Size) ? 494 : 237);
         var bitmap = new SKBitmap(imageInfo);
+
+        if (shopEntry.Image is null)
+            return bitmap;
+
         using var canvas = new SKCanvas(bitmap);
 
         var imageResize = shopEntry.Size.Equals(1.0f) ? 429 : imageInfo.Width;
         using var resizedImageBitmap =
-            shopEntry.Image!.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
+            shopEntry.Image.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
 
         if (shopEntry.ImageUrl == null)
         {
