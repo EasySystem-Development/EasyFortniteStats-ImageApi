@@ -30,7 +30,7 @@ public class UtilsImageController : ControllerBase
     [HttpPost("progressBar")]
     public async Task<IActionResult> GenerateProgressBar(ProgressBar progressBar)
     {
-        Console.WriteLine("Progress Bar request.");
+        Console.WriteLine("Progress Bar request");
         using var bitmap = new SKBitmap(568, 30);
         using var canvas = new SKCanvas(bitmap);
 
@@ -87,7 +87,7 @@ public class UtilsImageController : ControllerBase
     [HttpPost("drop")]
     public async Task<IActionResult> GenerateDropImage(Drop drop)
     {
-        Console.WriteLine("Drop Image request.");
+        Console.WriteLine("Drop Image request");
         var mapBitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose TODO: Clear caching on bg change
 
         if (mapBitmap == null)
