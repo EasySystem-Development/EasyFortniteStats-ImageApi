@@ -40,6 +40,7 @@ public class ShopImageController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Post(Shop shop)
     {
+        Console.WriteLine($"Item Shop image request. Locale = {shop.Locale}, New Shop = {shop.NewShop}");
         // Hash the section ids
         var templateHash = string.Join('-', shop.Sections.Select(x => x.Id)).GetHashCode().ToString();
         var isNewShop = shop.NewShop ?? false;
@@ -201,6 +202,8 @@ public class ShopImageController : ControllerBase
         int shopTitleWidth;
         using (var shopTitlePaint = new SKPaint())
         {
+            // TODO: Make dynamic. Solve narrow layouts
+            shop.Title = "SHOP";
             shopTitlePaint.IsAntialias = true;
             shopTitlePaint.TextSize = 250.0f;
             shopTitlePaint.Color = SKColors.White;

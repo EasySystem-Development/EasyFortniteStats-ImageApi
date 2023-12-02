@@ -30,6 +30,7 @@ public class UtilsImageController : ControllerBase
     [HttpPost("progressBar")]
     public async Task<IActionResult> GenerateProgressBar(ProgressBar progressBar)
     {
+        Console.WriteLine("Progress Bar request.");
         using var bitmap = new SKBitmap(568, 30);
         using var canvas = new SKCanvas(bitmap);
 
@@ -86,6 +87,7 @@ public class UtilsImageController : ControllerBase
     [HttpPost("drop")]
     public async Task<IActionResult> GenerateDropImage(Drop drop)
     {
+        Console.WriteLine("Drop Image request.");
         var mapBitmap = await _assets.GetBitmap($"data/images/map/{drop.Locale}.png"); // don't dispose TODO: Clear caching on bg change
 
         if (mapBitmap == null)
@@ -99,9 +101,9 @@ public class UtilsImageController : ControllerBase
         var markerAmount = Directory.EnumerateFiles("Assets/Images/Map/Markers", "*.png").Count();
         var markerBitmap = await _assets.GetBitmap($"Assets/Images/Map/Markers/{RandomNumberGenerator.GetInt32(markerAmount - 1)}.png");  // don't dispose
 
-        const int worldRadius = 150000;
-        const int xOffset = 80;
-        const int yOffset = 60;
+        const int worldRadius = 130000;
+        const int xOffset = 175;
+        const int yOffset = 220;
 
         var mx = ((float)drop.Y + worldRadius) / (worldRadius * 2) * bitmap.Width + xOffset;
         var my = (1 - ((float)drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height + yOffset;
