@@ -168,12 +168,13 @@ public class AccountImageController : ControllerBase
                     byte[] itemImageBytes;
                     try
                     {
-                        itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl, token);
+                        var imageUrl = changeUrlImageSize(item.ImageUrl, 256);
+                        itemImageBytes = await client.GetByteArrayAsync(imageUrl, token);
                     }
                     catch (HttpRequestException e)
                     {
                         if (e.StatusCode != HttpStatusCode.NotFound) throw;
-                        itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl.Replace("_256", ""), token);
+                        itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl, token);
                     }
 
                     var itemImageRaw = SKBitmap.Decode(itemImageBytes);
@@ -289,5 +290,17 @@ public class AccountImageController : ControllerBase
         canvas.DrawText(text, (50 + 10 + 5 + 10) * resizeFactor, (imageInfo.Height + textBounds.Height) / 2, textPaint);
 
         return bitmap;
+    }
+
+    private string changeUrlImageSize(string originalUrl, int size)
+    {
+        var uri = new Uri(originalUrl);
+
+        if (!uri.Host.Equals("fortnite-api.com", StringComparison.OrdinalIgnoreCase)) return originalUrl;
+
+        var basePart = $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}";
+        var filePart = uri.Segments.Last();
+        var modifiedFileName = filePart.Insert(filePart.LastIndexOf('.'), $"_{size}");
+        return $"{basePart}{modifiedFileName}";
     }
 }
