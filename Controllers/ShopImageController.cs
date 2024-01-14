@@ -16,6 +16,8 @@ public class ShopImageController : ControllerBase
     private readonly IHttpClientFactory _clientFactory;
     private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
+    
+    private readonly int COLUMN_SECIONS = 6;
 
     private static readonly MemoryCacheEntryOptions ShopImageCacheOptions = new()
     {
@@ -337,27 +339,24 @@ public class ShopImageController : ControllerBase
     {
         var sectionWidths = new List<int[]>();
         var columns = new List<ShopSection[]>();
-        SKImageInfo imageInfo;
-        if (shop.Sections.Length > 6)
+        
+        var numColumns = (int)Math.Ceiling((double)shop.Sections.Length / COLUMN_SECIONS);
+        var sectionsPerColumn = shop.Sections.Length / numColumns;
+        var remainder = shop.Sections.Length % numColumns;
+        
+        for (var i = 0; i < numColumns; i++)
         {
-            var breakpoint = shop.Sections.Length / 2 + shop.Sections.Length % 2;
-            columns.Add(shop.Sections.Take(breakpoint).ToArray());
-            sectionWidths.Add(columns[0].Select(x => (int) x.Entries.Sum(y => y.Size)).ToArray());
-            columns.Add(shop.Sections.Skip(breakpoint).ToArray());
-            sectionWidths.Add(columns[1].Select(x => (int) x.Entries.Sum(y => y.Size)).ToArray());
-            var maxSectionWidths = sectionWidths.Select(x => x.Max()).ToArray();
-            imageInfo = new SKImageInfo(
-                100 + maxSectionWidths[0] * 286 + (maxSectionWidths[0] - 1) * 20 + 50
-                + maxSectionWidths[1] * 286 + (maxSectionWidths[1] - 1) * 20 + 100,
-                100 + 270 + (82 + 494) * columns[0].Length + 120);
+            var startIndex = i * sectionsPerColumn + Math.Min(i, remainder);
+            var endIndex = (i + 1) * sectionsPerColumn + Math.Min(i + 1, remainder);
+
+            columns.Add(shop.Sections.Skip(startIndex).Take(endIndex - startIndex).ToArray());
+            sectionWidths.Add(columns[i].Select(x => (int)x.Entries.Sum(y => y.Size)).ToArray());
         }
-        else
-        {
-            columns.Add(shop.Sections);
-            sectionWidths.Add(columns[0].Select(x => (int) x.Entries.Sum(y => y.Size)).ToArray());
-            imageInfo = new SKImageInfo(100 + sectionWidths[0].Max() * 286 + (sectionWidths[0].Max() - 1) * 20 + 100,
-                100 + 270 + (82 + 494) * sectionWidths[0].Length + 120);
-        }
+        var maxSectionWidths = sectionWidths.Select(x => x.Max()).ToArray();
+
+        var width = 2 * 100 + (numColumns - 1) * 50; // 100 padding on each side and 50 for each column except the last one
+        width += maxSectionWidths.Sum(maxWidth => maxWidth * 306 - 20); // 286 for each section width and 20 for each section except the last one
+        var imageInfo = new SKImageInfo(width, 100 + 270 + (82 + 494) * columns[0].Length + 120);
 
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
@@ -373,7 +372,7 @@ public class ShopImageController : ControllerBase
                 using var sectionBitmap = new SKBitmap(sectionImageInfo);
                 using var sectionCanvas = new SKCanvas(sectionBitmap);
 
-                var sectionX = 100 + i * (50 + sectionWidths[0].Max() * 286 + (sectionWidths[0].Max() - 1) * 20);
+                var sectionX = 100 + i * 50 + maxSectionWidths.Take(i).Sum(maxWidth => maxWidth * 286 + (maxWidth - 1) * 20);
                 var sectionY = 100 + 270 + 100 + (82 + 494) * j;
                 var shopEntryData = new List<ShopEntryLocationData>();
 
