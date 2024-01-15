@@ -16,8 +16,8 @@ public class ShopImageController : ControllerBase
     private readonly IHttpClientFactory _clientFactory;
     private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
-    
-    private readonly int COLUMN_SECIONS = 6;
+
+    private const int COLUMN_SECTIONS = 6;
 
     private static readonly MemoryCacheEntryOptions ShopImageCacheOptions = new()
     {
@@ -340,14 +340,15 @@ public class ShopImageController : ControllerBase
         var sectionWidths = new List<int[]>();
         var columns = new List<ShopSection[]>();
         
-        var numColumns = (int)Math.Ceiling((double)shop.Sections.Length / COLUMN_SECIONS);
+        var numColumns = (int)Math.Ceiling((double)shop.Sections.Length / COLUMN_SECTIONS);
         var sectionsPerColumn = shop.Sections.Length / numColumns;
-        var remainder = shop.Sections.Length % numColumns;
-        
+        if (shop.Sections.Length % numColumns > 0)
+            sectionsPerColumn++;
+
         for (var i = 0; i < numColumns; i++)
         {
-            var startIndex = i * sectionsPerColumn + Math.Min(i, remainder);
-            var endIndex = (i + 1) * sectionsPerColumn + Math.Min(i + 1, remainder);
+            var startIndex = i * sectionsPerColumn;
+            var endIndex = (i + 1) * sectionsPerColumn;
 
             columns.Add(shop.Sections.Skip(startIndex).Take(endIndex - startIndex).ToArray());
             sectionWidths.Add(columns[i].Select(x => (int)x.Entries.Sum(y => y.Size)).ToArray());
@@ -362,12 +363,13 @@ public class ShopImageController : ControllerBase
         using var canvas = new SKCanvas(bitmap);
 
         var shopLocationData = new ShopSectionLocationData[shop.Sections.Length];
+        var iSec = 0;
         for (var i = 0; i < columns.Count; i++)
         {
-            var columSections = columns[i];
-            for (var j = 0; j < columSections.Length; j++)
+            var columnSections = columns[i];
+            for (var j = 0; j < columnSections.Length; j++)
             {
-                var section = columSections[j];
+                var section = columnSections[j];
                 var sectionImageInfo = new SKImageInfo(sectionWidths[i][j] * 286 + (sectionWidths[i][j] - 1) * 20, 494);
                 using var sectionBitmap = new SKBitmap(sectionImageInfo);
                 using var sectionCanvas = new SKCanvas(sectionBitmap);
@@ -400,9 +402,9 @@ public class ShopImageController : ControllerBase
                 if (section.Name != null)
                     sectionNameLocationData = new ShopLocationDataEntry(sectionX + 28, sectionY - 45 - 8);
 
-                shopLocationData[j + i * columns[0].Length] = new ShopSectionLocationData(section.Id, sectionNameLocationData, shopEntryData.ToArray());
-
+                shopLocationData[iSec] = new ShopSectionLocationData(section.Id, sectionNameLocationData, shopEntryData.ToArray());
                 canvas.DrawBitmap(sectionBitmap, new SKPoint(sectionX, sectionY));
+                iSec++;
             }
         }
 
