@@ -1,5 +1,5 @@
 ﻿using System.Net;
-
+using System.Security.Cryptography;
 using EasyFortniteStats_ImageApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -166,9 +166,11 @@ public class AccountImageController : ControllerBase
             var itemCard = _cache.Get<SKBitmap?>(itemCardKey);
             if (itemCard is null)
             {
-                var itemImageKey = $"locker_image_{item.Id}";
-                var itemImage = _cache.Get<SKBitmap?>(itemImageKey);
-                if (itemImage is null)
+                var hash = CalculateSHA256Hash(item.Id);
+                var groupPath = $"data/images/locker/{hash[..2]}";
+                var filePath = Path.Combine(groupPath, $"{hash}.png");
+                SKBitmap? itemImage = null;
+                if (!System.IO.File.Exists(filePath))
                 {
                     using var client = _clientFactory.CreateClient();
                     byte[]? itemImageBytes;
@@ -210,8 +212,15 @@ public class AccountImageController : ControllerBase
                             itemImage = itemImageRaw;
                         }
 
-                        _cache.Set(itemImageKey, itemImage, LockerImageCacheOptions);
+                        Directory.CreateDirectory(groupPath);
+                        await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write,
+                            FileShare.None, 4096, true);
+                        itemImage.Encode(SKEncodedImageFormat.Png, 100).SaveTo(fileStream);
                     }
+                }
+                else
+                {
+                    itemImage = SKBitmap.Decode(filePath);
                 }
 
                 itemCard = await GenerateItemCard(item, itemImage);
@@ -339,5 +348,11 @@ public class AccountImageController : ControllerBase
         var filePart = uri.Segments.Last();
         var modifiedFileName = filePart.Insert(filePart.LastIndexOf('.'), $"_{size}");
         return $"{basePart}{modifiedFileName}";
+    }
+
+    private static string CalculateSHA256Hash(string itemId)
+    {
+        var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(itemId));
+        return BitConverter.ToString(hash).Replace("-", string.Empty);
     }
 }
