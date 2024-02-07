@@ -9,11 +9,12 @@ public class ImageUtils
     {
         Console.WriteLine($"MemoryCache: Disposing {key} | Reason: {reason}");
         if (value is null) return;
-        var bmp = (SKBitmap)value;
+        var bmp = (SKBitmap) value;
         bmp.Dispose();
     }
 
-    public static async Task<SKBitmap> GenerateDiscordBox(SharedAssets _assets, string username, float resizeFactor = 1.0f)
+    public static async Task<SKBitmap> GenerateDiscordBox(SharedAssets _assets, string username,
+        float resizeFactor = 1.0f)
     {
         var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
 
@@ -27,7 +28,7 @@ public class ImageUtils
         discordTagTextPaint.MeasureText(username, ref discordTagTextBounds);
 
         var imageInfo = new SKImageInfo(
-            (int) Math.Min(discordTagTextBounds.Width + (10 + 2 * 15 + 50) * resizeFactor, 459 * resizeFactor), 
+            (int) Math.Min(discordTagTextBounds.Width + (10 + 2 * 15 + 50) * resizeFactor, 459 * resizeFactor),
             (int) (62 * resizeFactor));
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
@@ -42,8 +43,10 @@ public class ImageUtils
         var discordLogoBitmap = await _assets.GetBitmap("Assets/Images/DiscordLogo.png"); // don't dispose
         // get height with the same aspect ratio
         var logoResizeHeight = (int) (discordLogoBitmap!.Height * (logoResizeWidth / (float) discordLogoBitmap.Width));
-        var discordLogoBitmapResized = discordLogoBitmap.Resize(new SKImageInfo(logoResizeWidth, logoResizeHeight), SKFilterQuality.High);
-        canvas.DrawBitmap(discordLogoBitmapResized, 10 * resizeFactor,  (float)(imageInfo.Height - discordLogoBitmapResized.Height) / 2);
+        var discordLogoBitmapResized =
+            discordLogoBitmap.Resize(new SKImageInfo(logoResizeWidth, logoResizeHeight), SKFilterQuality.High);
+        canvas.DrawBitmap(discordLogoBitmapResized, 10 * resizeFactor,
+            (float) (imageInfo.Height - discordLogoBitmapResized.Height) / 2);
 
         while (discordTagTextBounds.Width + (10 + 2 * 15 + 50) * resizeFactor > imageInfo.Width)
         {
@@ -52,11 +55,11 @@ public class ImageUtils
         }
 
         canvas.DrawText(username, (10 + 15) * resizeFactor + discordLogoBitmapResized.Width,
-            (float)imageInfo.Height / 2 - discordTagTextBounds.MidY, discordTagTextPaint);
+            (float) imageInfo.Height / 2 - discordTagTextBounds.MidY, discordTagTextPaint);
 
         return bitmap;
     }
-    
+
     public static SKBitmap RotateBitmap(SKBitmap bitmap, float angle)
     {
         var radians = MathF.PI * angle / 180;
@@ -76,7 +79,7 @@ public class ImageUtils
 
         return rotatedBitmap;
     }
-    
+
     public static SKBitmap GenerateRarityStripe(int width, SKColor rarityColor)
     {
         var imageInfo = new SKImageInfo(width, 14);
@@ -101,7 +104,7 @@ public class ImageUtils
 
         return bitmap;
     }
-    
+
     public static SKBitmap GenerateItemCardOverlay(int width, SKBitmap? icon = null)
     {
         var imageInfo = new SKImageInfo(width, 65);
