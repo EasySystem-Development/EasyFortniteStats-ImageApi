@@ -175,13 +175,13 @@ public class AccountImageController : ControllerBase
                         var imageUrl = changeUrlImageSize(item.ImageUrl, 256);
                         itemImageBytes = await client.GetByteArrayAsync(imageUrl, token);
                     }
-                    catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.NotFound)
+                    catch (HttpRequestException e) when (e.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.ServiceUnavailable)
                     {
                         try
                         {
                             itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl, token);
                         }
-                        catch (HttpRequestException e2) when (e2.StatusCode == HttpStatusCode.NotFound)
+                        catch (HttpRequestException e2) when (e2.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.ServiceUnavailable)
                         {
                             Console.WriteLine($"Image not found for item {item.Id} ({item.ImageUrl})");
                             return;
