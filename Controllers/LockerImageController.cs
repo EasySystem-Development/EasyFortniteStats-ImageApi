@@ -131,10 +131,14 @@ public class AccountImageController : ControllerBase
         var column = 0; var row = 0;
         foreach (var item in locker.Items)
         {
-            canvas.DrawBitmap(
-                item.Image, 
-                50 + 256 * column + 25 * column, 
-                50 + nameFontSize + 50 + row * 313 + row * 25);
+            if (item.Image is not null)
+            {
+                canvas.DrawBitmap(
+                    item.Image,
+                    50 + 256 * column + 25 * column,
+                    50 + nameFontSize + 50 + row * 313 + row * 25);
+
+            }
             column++;
             if (column != columns) continue;
             column = 0;
@@ -171,10 +175,18 @@ public class AccountImageController : ControllerBase
                         var imageUrl = changeUrlImageSize(item.ImageUrl, 256);
                         itemImageBytes = await client.GetByteArrayAsync(imageUrl, token);
                     }
-                    catch (HttpRequestException e)
+                    catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.NotFound)
                     {
-                        if (e.StatusCode != HttpStatusCode.NotFound) throw;
-                        itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl, token);
+                        try
+                        {
+                            itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl, token);
+                        }
+                        catch (HttpRequestException e2) when (e2.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            Console.WriteLine($"Image not found for item {item.Id} ({item.ImageUrl})");
+                            return;
+                        }
+
                     }
 
                     var itemImageRaw = SKBitmap.Decode(itemImageBytes);
