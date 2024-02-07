@@ -83,25 +83,25 @@ public class AccountImageController : ControllerBase
 
         var footerSpace = (int) (80 * uiResizingFactor);
         var imageInfo = new SKImageInfo(
-            50 + 256 * columns + 25 * (columns - 1) + 50, 
+            50 + 256 * columns + 25 * (columns - 1) + 50,
             50 + nameFontSize + 50 + rows * 313 + (rows - 1) * 25 + footerSpace);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
-        
+
         using var backgroundPaint = new SKPaint();
         backgroundPaint.IsAntialias = true;
         backgroundPaint.Shader = SKShader.CreateLinearGradient(
             new SKPoint((float)imageInfo.Width / 2, 0),
             new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
-            new[] {new SKColor(44, 154, 234), new SKColor(14, 53, 147)},
-            new[] {0.0f, 1.0f},
+            [new SKColor(44, 154, 234), new SKColor(14, 53, 147)],
+            [0.0f, 1.0f],
             SKShaderTileMode.Repeat);
-        
+
         canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
-        
+
         var textBounds = new SKRect();
         var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
-        
+
         var icon = await _assets.GetBitmap("Assets/Images/Locker/Icon.png");  // don't dispose
         var resize = (int) (50 * uiResizingFactor);
         using var resizeIcon = icon!.Resize(new SKImageInfo(resize, resize), SKFilterQuality.High);
@@ -121,7 +121,7 @@ public class AccountImageController : ControllerBase
         namePaint.Typeface = segoeFont;
         namePaint.TextSize = nameFontSize;
         namePaint.FilterQuality = SKFilterQuality.Medium;
-        
+
         namePaint.MeasureText(locker.PlayerName, ref textBounds);
         canvas.DrawText(locker.PlayerName, 50 + resizeIcon.Width + splitWidth * 3, 58 - textBounds.Top, namePaint);
 
@@ -141,7 +141,7 @@ public class AccountImageController : ControllerBase
             column = 0;
             row++;
         }
-        
+
         // Load Footer.svg file as a stream
         using var footerBitmap = await GenerateFooter(uiResizingFactor);
         canvas.DrawBitmap(footerBitmap,  (imageInfo.Width - footerBitmap.Width) / 2.0f, imageInfo.Height - (footerSpace + footerBitmap.Height) / 2.0f);
@@ -295,7 +295,7 @@ public class AccountImageController : ControllerBase
         var imageInfo = new SKImageInfo((int) ((50 + 10 + 5 + 10) * resizeFactor + textBounds.Width), (int) (50 * resizeFactor));
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
-        
+
         var logoBitmap = await _assets.GetBitmap("Assets/Images/Logo.png");  // don't dispose
         var logoBitmapResize = logoBitmap!.Resize(new SKImageInfo(imageInfo.Height, imageInfo.Height), SKFilterQuality.High);
         canvas.DrawBitmap(logoBitmapResize, new SKPoint(0, 0));
@@ -312,7 +312,7 @@ public class AccountImageController : ControllerBase
         return bitmap;
     }
 
-    private string changeUrlImageSize(string originalUrl, int size)
+    private static string changeUrlImageSize(string originalUrl, int size)
     {
         var uri = new Uri(originalUrl);
 
