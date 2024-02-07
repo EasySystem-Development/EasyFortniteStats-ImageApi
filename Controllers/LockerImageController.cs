@@ -186,7 +186,11 @@ public class AccountImageController : ControllerBase
                             Console.WriteLine($"Failed to download image with status {e2.StatusCode} for {item.Name} ({item.ImageUrl}) ");
                             return;
                         }
-
+                    }
+                    catch (HttpRequestException e)
+                    {
+                        Console.WriteLine($"Failed to download image with status {e.StatusCode} for {item.Name} ({item.ImageUrl}) ");
+                        return;
                     }
 
                     var itemImageRaw = SKBitmap.Decode(itemImageBytes);
