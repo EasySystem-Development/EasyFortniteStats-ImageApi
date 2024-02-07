@@ -131,14 +131,11 @@ public class AccountImageController : ControllerBase
         var column = 0; var row = 0;
         foreach (var item in locker.Items)
         {
-            if (item.Image is not null)
-            {
-                canvas.DrawBitmap(
-                    item.Image,
-                    50 + 256 * column + 25 * column,
-                    50 + nameFontSize + 50 + row * 313 + row * 25);
+            canvas.DrawBitmap(
+                item.Image,
+                50 + 256 * column + 25 * column,
+                50 + nameFontSize + 50 + row * 313 + row * 25);
 
-            }
             column++;
             if (column != columns) continue;
             column = 0;
@@ -169,7 +166,7 @@ public class AccountImageController : ControllerBase
                 if (itemImage is null)
                 {
                     using var client = _clientFactory.CreateClient();
-                    byte[] itemImageBytes;
+                    byte[]? itemImageBytes;
                     try
                     {
                         var imageUrl = changeUrlImageSize(item.ImageUrl, 256);
@@ -184,38 +181,45 @@ public class AccountImageController : ControllerBase
                         catch (HttpRequestException e2)
                         {
                             Console.WriteLine($"Failed to download image with status {e2.StatusCode} for {item.Name} ({item.ImageUrl}) ");
-                            return;
+                            itemImageBytes = null;
                         }
                     }
                     catch (HttpRequestException e)
                     {
                         Console.WriteLine($"Failed to download image with status {e.StatusCode} for {item.Name} ({item.ImageUrl}) ");
-                        return;
+                        itemImageBytes = null;
                     }
 
-                    var itemImageRaw = SKBitmap.Decode(itemImageBytes);
-                    if (itemImageRaw.Width != 256 || itemImageRaw.Height != 256)
+                    if (itemImageBytes is not null)
                     {
-                        itemImage = itemImageRaw.Resize(new SKImageInfo(256, 256), SKFilterQuality.Medium);
-                        itemImageRaw.Dispose();
-                    }
-                    else
-                    {
-                        itemImage = itemImageRaw;
-                    }
+                        var itemImageRaw = SKBitmap.Decode(itemImageBytes);
+                        if (itemImageRaw.Width != 256 || itemImageRaw.Height != 256)
+                        {
+                            itemImage = itemImageRaw.Resize(new SKImageInfo(256, 256), SKFilterQuality.Medium);
+                            itemImageRaw.Dispose();
+                        }
+                        else
+                        {
+                            itemImage = itemImageRaw;
+                        }
 
-                    _cache.Set(itemImageKey, itemImage, LockerImageCacheOptions);
+                        _cache.Set(itemImageKey, itemImage, LockerImageCacheOptions);
+                    }
                 }
 
                 itemCard = await GenerateItemCard(item, itemImage);
-                _cache.Set(itemCardKey, itemCard, LockerImageCacheOptions);
+                if (itemImage is not null)
+                {
+                    _cache.Set(itemCardKey, itemCard, LockerImageCacheOptions);
+                }
+
             }
 
             item.Image = itemCard;
         });
     }
 
-    private async Task<SKBitmap> GenerateItemCard(LockerItem lockerItem, SKBitmap itemImage)
+    private async Task<SKBitmap> GenerateItemCard(LockerItem lockerItem, SKBitmap? itemImage)
     {
         var imageInfo = new SKImageInfo(256, 313);
         var bitmap = new SKBitmap(imageInfo);
@@ -224,7 +228,7 @@ public class AccountImageController : ControllerBase
         var rarityBackground = await _assets.GetBitmap($"Assets/Images/Locker/RarityBackgrounds/{lockerItem.Rarity}.png");
         canvas.DrawBitmap(rarityBackground, SKPoint.Empty);
 
-        canvas.DrawBitmap(itemImage, SKPoint.Empty);
+        if (itemImage is not null) canvas.DrawBitmap(itemImage, SKPoint.Empty);
 
         var typeIcon = lockerItem.SourceType != SourceType.Other ? await _assets.GetBitmap($"Assets/Images/Locker/Source/{lockerItem.SourceType}.png") : null;
         using var overlayImage = ImageUtils.GenerateItemCardOverlay(imageInfo.Width, typeIcon);
