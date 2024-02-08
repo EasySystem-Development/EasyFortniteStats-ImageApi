@@ -15,7 +15,8 @@ public sealed class NamedLock
         _poolCapacity = poolCapacity;
     }
 
-    public async Task<bool> WaitAsync(string key, int millisecondsTimeout, CancellationToken cancellationToken = default)
+    public async Task<bool> WaitAsync(string key, int millisecondsTimeout,
+        CancellationToken cancellationToken = default)
     {
         var semaphore = GetSemaphore(key);
         var entered = false;
@@ -24,7 +25,11 @@ public sealed class NamedLock
             entered = await semaphore.WaitAsync(millisecondsTimeout,
                 cancellationToken).ConfigureAwait(false);
         }
-        finally { if (!entered) ReleaseSemaphore(key, entered: false); }
+        finally
+        {
+            if (!entered) ReleaseSemaphore(key, entered: false);
+        }
+
         return entered;
     }
 
@@ -36,8 +41,15 @@ public sealed class NamedLock
     {
         var semaphore = GetSemaphore(key);
         var entered = false;
-        try { entered = semaphore.Wait(millisecondsTimeout, cancellationToken); }
-        finally { if (!entered) ReleaseSemaphore(key, entered: false); }
+        try
+        {
+            entered = semaphore.Wait(millisecondsTimeout, cancellationToken);
+        }
+        finally
+        {
+            if (!entered) ReleaseSemaphore(key, entered: false);
+        }
+
         return entered;
     }
 
@@ -63,12 +75,14 @@ public sealed class NamedLock
                 _perKey[key] = (semaphore, 1);
             }
         }
+
         return semaphore;
     }
 
     private void ReleaseSemaphore(string key, bool entered)
     {
-        SemaphoreSlim semaphore; int counter;
+        SemaphoreSlim semaphore;
+        int counter;
         lock (_perKey)
         {
             if (_perKey.TryGetValue(key, out var entry))
@@ -85,10 +99,13 @@ public sealed class NamedLock
                 throw new InvalidOperationException("Key not found.");
             }
         }
+
         if (entered) semaphore.Release();
-        if (counter != 0)  return;
+        if (counter != 0) return;
 
         Debug.Assert(semaphore.CurrentCount == 1);
-        lock (_pool) if (_pool.Count < _poolCapacity) _pool.Push(semaphore);
+        lock (_pool)
+            if (_pool.Count < _poolCapacity)
+                _pool.Push(semaphore);
     }
 }

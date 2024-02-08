@@ -1,8 +1,6 @@
 ﻿using EasyFortniteStats_ImageApi.Models;
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-
 using SkiaSharp;
 
 // ReSharper disable InconsistentNaming
@@ -27,9 +25,11 @@ public class StatsImageController : ControllerBase
     public async Task<IActionResult> Post(Stats stats, StatsType type = StatsType.Normal)
     {
         Console.WriteLine($"Stats image request | Name = {stats.PlayerName} | Type = {type}");
-        if (type == StatsType.Normal && stats.Teams == null) return BadRequest("Normal stats type requested but no team stats were provided.");
-        if (type == StatsType.Competitive && stats.Competitive == null) return BadRequest("Competitive stats type requested but no competitive stats were provided.");
-        
+        if (type == StatsType.Normal && stats.Teams == null)
+            return BadRequest("Normal stats type requested but no team stats were provided.");
+        if (type == StatsType.Competitive && stats.Competitive == null)
+            return BadRequest("Competitive stats type requested but no competitive stats were provided.");
+
         var backgroundHash = stats.BackgroundImagePath is not null ? $"_{stats.BackgroundImagePath.GetHashCode()}" : "";
 
         var lockName = $"stats_{type}{backgroundHash}_template_mutex";
@@ -58,7 +58,9 @@ public class StatsImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
-        var customBackgroundBitmap = await _assets.GetBitmap("data/images/{0}", stats.BackgroundImagePath); // don't dispose TODO: Clear caching on bg change
+        var customBackgroundBitmap =
+            await _assets.GetBitmap("data/images/{0}",
+                stats.BackgroundImagePath); // don't dispose TODO: Clear caching on bg change
         if (customBackgroundBitmap is null)
         {
             using var backgroundPaint = new SKPaint();
@@ -66,7 +68,7 @@ public class StatsImageController : ControllerBase
             backgroundPaint.Shader = SKShader.CreateRadialGradient(
                 new SKPoint(imageInfo.Rect.MidX, imageInfo.Rect.MidY),
                 MathF.Sqrt(MathF.Pow(imageInfo.Rect.MidX, 2) + MathF.Pow(imageInfo.Rect.MidY, 2)),
-                new SKColor[] { new(41, 165, 224), new(9, 66, 180)},
+                [new SKColor(41, 165, 224), new SKColor(9, 66, 180)],
                 SKShaderTileMode.Clamp);
 
             canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundPaint);
@@ -79,10 +81,14 @@ public class StatsImageController : ControllerBase
 
             if (customBackgroundBitmap.Width != imageInfo.Width || customBackgroundBitmap.Height != imageInfo.Height)
             {
-                using var resizedCustomBackgroundBitmap = customBackgroundBitmap.Resize(imageInfo, SKFilterQuality.Medium);
-                backgroundImagePaint.Shader = SKShader.CreateBitmap(resizedCustomBackgroundBitmap, SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
+                using var resizedCustomBackgroundBitmap =
+                    customBackgroundBitmap.Resize(imageInfo, SKFilterQuality.Medium);
+                backgroundImagePaint.Shader = SKShader.CreateBitmap(resizedCustomBackgroundBitmap,
+                    SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
             }
-            else backgroundImagePaint.Shader = SKShader.CreateBitmap(customBackgroundBitmap, SKShaderTileMode.Clamp, SKShaderTileMode.Repeat);
+            else
+                backgroundImagePaint.Shader = SKShader.CreateBitmap(customBackgroundBitmap, SKShaderTileMode.Clamp,
+                    SKShaderTileMode.Repeat);
 
             canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundImagePaint);
         }
@@ -134,7 +140,8 @@ public class StatsImageController : ControllerBase
 
             var upperBoxRect = SKRect.Create(49, 159, 437, 158);
             var upperBox = new SKRoundRect(upperBoxRect);
-            upperBox.SetRectRadii(upperBoxRect, new SKPoint[] { new(30, 30), new(30, 30), new(0, 0), new(0, 0) });
+            upperBox.SetRectRadii(upperBoxRect,
+                [new SKPoint(30, 30), new SKPoint(30, 30), new SKPoint(0, 0), new SKPoint(0, 0)]);
             canvas.DrawRoundRect(upperBox, overlayBoxPaint);
 
             using var splitPaint = new SKPaint();
@@ -213,7 +220,7 @@ public class StatsImageController : ControllerBase
 
             using var battlePassBarBackgroundPaint = new SKPaint();
             battlePassBarBackgroundPaint.IsAntialias = true;
-            battlePassBarBackgroundPaint.Color = SKColors.White.WithAlpha((int)(.3 * 255));
+            battlePassBarBackgroundPaint.Color = SKColors.White.WithAlpha((int) (.3 * 255));
             canvas.DrawRoundRect(158, 483, 309, 20, 10, 10, battlePassBarBackgroundPaint);
         }
 
@@ -420,7 +427,8 @@ public class StatsImageController : ControllerBase
 
         var textBounds = new SKRect();
 
-        var inputIcon = await _assets.GetBitmap($"Assets/Images/Stats/InputTypes/{stats.InputType}.png"); // don't dispose
+        var inputIcon =
+            await _assets.GetBitmap($"Assets/Images/Stats/InputTypes/{stats.InputType}.png"); // don't dispose
         canvas.DrawBitmap(inputIcon, 50, 50);
 
         namePaint.MeasureText(stats.PlayerName, ref textBounds);
@@ -437,21 +445,25 @@ public class StatsImageController : ControllerBase
 
         if (type == StatsType.Competitive)
         {
-
             var rankedTypeX = new Dictionary<RankedType, int>
             {
-                { RankedType.BatteRoyale, 151 },
-                { RankedType.ZeroBuild, 379 },
+                {RankedType.BatteRoyale, 151},
+                {RankedType.ZeroBuild, 379},
             };
             foreach (var rankedStatsEntry in stats.Competitive!.RankedStatsEntries)
             {
                 var x = rankedTypeX[rankedStatsEntry.RankingType];
-                var divisionAssetName = rankedStatsEntry.isUnranked() ? "Unranked" : rankedStatsEntry.CurrentDivision.ToString();
-                var divisionIconBitmap = await _assets.GetBitmap($"Assets/Images/Stats/DivisionIcons/{divisionAssetName}.png"); // don't dispose
+                var divisionAssetName = rankedStatsEntry.isUnranked()
+                    ? "Unranked"
+                    : rankedStatsEntry.CurrentDivision.ToString();
+                var divisionIconBitmap =
+                    await _assets.GetBitmap(
+                        $"Assets/Images/Stats/DivisionIcons/{divisionAssetName}.png"); // don't dispose
                 canvas.DrawBitmap(divisionIconBitmap, x - divisionIconBitmap!.Width / 2, 109);
 
                 divisionPaint.MeasureText(rankedStatsEntry.CurrentDivisionName, ref textBounds);
-                canvas.DrawText(rankedStatsEntry.CurrentDivisionName, x - (int) (textBounds.Width / 2), 206 - textBounds.Top, divisionPaint);
+                canvas.DrawText(rankedStatsEntry.CurrentDivisionName, x - (int) (textBounds.Width / 2),
+                    206 - textBounds.Top, divisionPaint);
 
                 if (rankedStatsEntry.Ranking == null)
                 {
@@ -465,7 +477,7 @@ public class StatsImageController : ControllerBase
                     barBackgroundPaint.Color = SKColors.White.WithAlpha((int) (.2 * 255));
                     canvas.DrawRoundRect(barX, 250, maxBarWidth, barHeight, 10, 10, barBackgroundPaint);
 
-                    var rankProgressBarWidth = (int)(maxBarWidth * rankedStatsEntry.Progress);
+                    var rankProgressBarWidth = (int) (maxBarWidth * rankedStatsEntry.Progress);
                     if (rankProgressBarWidth > 0)
                     {
                         rankProgressBarWidth = Math.Max(rankProgressBarWidth, barHeight);
@@ -474,8 +486,11 @@ public class StatsImageController : ControllerBase
                         battlePassBarPaint.Shader = SKShader.CreateLinearGradient(
                             new SKPoint(barX, 0),
                             new SKPoint(barX + rankProgressBarWidth, 0),
-                            new[] { SKColor.Parse(stats.BattlePassLevelBarColors[0]), SKColor.Parse(stats.BattlePassLevelBarColors[1])},
-                            new float[] {0, 1},
+                            [
+                                SKColor.Parse(stats.BattlePassLevelBarColors[0]),
+                                SKColor.Parse(stats.BattlePassLevelBarColors[1])
+                            ],
+                            [0, 1],
                             SKShaderTileMode.Repeat);
                         canvas.DrawRoundRect(barX, 250, rankProgressBarWidth, barHeight, 10, 10, battlePassBarPaint);
                     }
@@ -485,9 +500,9 @@ public class StatsImageController : ControllerBase
                 else
                 {
                     rankingPaint.MeasureText(rankedStatsEntry.Ranking, ref textBounds);
-                    canvas.DrawText(rankedStatsEntry.Ranking, x - (int) (textBounds.Width / 2), 245 - textBounds.Top, rankingPaint);
+                    canvas.DrawText(rankedStatsEntry.Ranking, x - (int) (textBounds.Width / 2), 245 - textBounds.Top,
+                        rankingPaint);
                 }
-
             }
 
             valuePaint.MeasureText(stats.Competitive.Earnings, ref textBounds);
@@ -537,13 +552,13 @@ public class StatsImageController : ControllerBase
             valuePaint.MeasureText(stats.Playtime.Minutes, ref textBounds);
             canvas.DrawText(stats.Playtime.Minutes, 213, 369 - textBounds.Top, valuePaint);
 
-            var battlePassLevel = ((int)stats.BattlePassLevel).ToString();
+            var battlePassLevel = ((int) stats.BattlePassLevel).ToString();
             valuePaint.MeasureText(battlePassLevel, ref textBounds);
             canvas.DrawText(battlePassLevel, 70, 479 - textBounds.Top, valuePaint);
 
             const int maxBarWidth = 309, barHeight = 20;
 
-            var battlePassBarWidth = (int)(maxBarWidth * (stats.BattlePassLevel - (int)stats.BattlePassLevel));
+            var battlePassBarWidth = (int) (maxBarWidth * (stats.BattlePassLevel - (int) stats.BattlePassLevel));
             if (battlePassBarWidth > 0)
             {
                 battlePassBarWidth = Math.Max(battlePassBarWidth, barHeight);
@@ -552,8 +567,11 @@ public class StatsImageController : ControllerBase
                 battlePassBarPaint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(158, 0),
                     new SKPoint(158 + battlePassBarWidth, 0),
-                    new[] { SKColor.Parse(stats.BattlePassLevelBarColors[0]), SKColor.Parse(stats.BattlePassLevelBarColors[1])},
-                    new float[] {0, 1},
+                    [
+                        SKColor.Parse(stats.BattlePassLevelBarColors[0]),
+                        SKColor.Parse(stats.BattlePassLevelBarColors[1])
+                    ],
+                    [0, 1],
                     SKShaderTileMode.Repeat);
 
                 canvas.DrawRoundRect(158, 483, battlePassBarWidth, barHeight, 10, 10, battlePassBarPaint);
