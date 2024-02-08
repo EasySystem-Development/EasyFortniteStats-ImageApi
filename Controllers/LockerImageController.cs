@@ -1,8 +1,6 @@
 ﻿using System.Net;
-
 using EasyFortniteStats_ImageApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using SkiaSharp;
 
 // ReSharper disable InconsistentNaming
@@ -12,10 +10,11 @@ namespace EasyFortniteStats_ImageApi.Controllers;
 [Route("locker")]
 public class AccountImageController : ControllerBase
 {
-    private readonly IMemoryCache _cache;
     private readonly IHttpClientFactory _clientFactory;
     private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
+    
+    private const string BASE_ITEM_IMAGE_PATH = "data/images/locker/items";
 
     private static readonly IReadOnlyList<(int Count, int Quality)> QualityMapping = new List<(int, int)>
     {
@@ -26,26 +25,13 @@ public class AccountImageController : ControllerBase
         (0, 100),
     };
 
-    public AccountImageController(IMemoryCache cache, IHttpClientFactory clientFactory, NamedLock namedLock,
+    public AccountImageController(IHttpClientFactory clientFactory, NamedLock namedLock,
         SharedAssets assets)
     {
-        _cache = cache;
         _clientFactory = clientFactory;
         _namedLock = namedLock;
         _assets = assets;
     }
-
-    private static readonly MemoryCacheEntryOptions LockerImageCacheOptions = new()
-    {
-        AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1),
-        PostEvictionCallbacks =
-        {
-            new PostEvictionCallbackRegistration
-            {
-                EvictionCallback = ImageUtils.BitmapPostEvictionCallback
-            }
-        }
-    };
 
     [HttpPost]
     public async Task<IActionResult> Post(Locker locker)
@@ -139,7 +125,7 @@ public class AccountImageController : ControllerBase
                 item.Image,
                 50 + 256 * column + 25 * column,
                 50 + nameFontSize + 50 + row * 313 + row * 25);
-
+            item.Image?.Dispose();
             column++;
             if (column != columns) continue;
             column = 0;
@@ -162,66 +148,63 @@ public class AccountImageController : ControllerBase
         };
         await Parallel.ForEachAsync(locker.Items, options, async (item, token) =>
         {
-            var itemCardKey = $"locker_card_image_{item.Id}_{locker.Locale}";
-            var itemCard = _cache.Get<SKBitmap?>(itemCardKey);
-            if (itemCard is null)
+            var filePath = Path.Combine(BASE_ITEM_IMAGE_PATH, $"{item.Id}.png");
+            SKBitmap? itemImage = null;
+            if (!System.IO.File.Exists(filePath))
             {
-                var itemImageKey = $"locker_image_{item.Id}";
-                var itemImage = _cache.Get<SKBitmap?>(itemImageKey);
-                if (itemImage is null)
+                using var client = _clientFactory.CreateClient();
+                byte[]? itemImageBytes;
+                try
                 {
-                    using var client = _clientFactory.CreateClient();
-                    byte[]? itemImageBytes;
+                    var imageUrl = changeUrlImageSize(item.ImageUrl, 256);
+                    itemImageBytes = await client.GetByteArrayAsync(imageUrl, token);
+                }
+                catch (HttpRequestException e) when (e.StatusCode is HttpStatusCode.NotFound)
+                {
                     try
                     {
-                        var imageUrl = changeUrlImageSize(item.ImageUrl, 256);
-                        itemImageBytes = await client.GetByteArrayAsync(imageUrl, token);
+                        itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl, token);
                     }
-                    catch (HttpRequestException e) when (e.StatusCode is HttpStatusCode.NotFound)
-                    {
-                        try
-                        {
-                            itemImageBytes = await client.GetByteArrayAsync(item.ImageUrl, token);
-                        }
-                        catch (HttpRequestException e2)
-                        {
-                            Console.WriteLine(
-                                $"Failed to download image with status {e2.StatusCode} for {item.Name} ({item.ImageUrl}) ");
-                            itemImageBytes = null;
-                        }
-                    }
-                    catch (HttpRequestException e)
+                    catch (HttpRequestException e2)
                     {
                         Console.WriteLine(
-                            $"Failed to download image with status {e.StatusCode} for {item.Name} ({item.ImageUrl}) ");
+                            $"Failed to download image with status {e2.StatusCode} for {item.Name} ({item.ImageUrl}) ");
                         itemImageBytes = null;
                     }
-
-                    if (itemImageBytes is not null)
-                    {
-                        var itemImageRaw = SKBitmap.Decode(itemImageBytes);
-                        if (itemImageRaw.Width != 256 || itemImageRaw.Height != 256)
-                        {
-                            itemImage = itemImageRaw.Resize(new SKImageInfo(256, 256), SKFilterQuality.Medium);
-                            itemImageRaw.Dispose();
-                        }
-                        else
-                        {
-                            itemImage = itemImageRaw;
-                        }
-
-                        _cache.Set(itemImageKey, itemImage, LockerImageCacheOptions);
-                    }
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(
+                        $"Failed to download image with status {e.StatusCode} for {item.Name} ({item.ImageUrl}) ");
+                    itemImageBytes = null;
                 }
 
-                itemCard = await GenerateItemCard(item, itemImage);
-                if (itemImage is not null)
+                if (itemImageBytes is not null)
                 {
-                    _cache.Set(itemCardKey, itemCard, LockerImageCacheOptions);
+                    using var itemImageRaw = SKBitmap.Decode(itemImageBytes);
+                    if (itemImageRaw.Width != 256 || itemImageRaw.Height != 256)
+                    {
+                        itemImage = itemImageRaw.Resize(new SKImageInfo(256, 256), SKFilterQuality.Medium);
+                    }
+                    else
+                    {
+                        itemImage = itemImageRaw;
+                    }
+
+                    Directory.CreateDirectory(BASE_ITEM_IMAGE_PATH);
+                    await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write,
+                        FileShare.None, 4096, true);
+                    using var data = itemImage.Encode(SKEncodedImageFormat.Png, 100);
+                    data.SaveTo(fileStream);
                 }
             }
+            else
+            {
+                itemImage = SKBitmap.Decode(filePath);
+            }
 
-            item.Image = itemCard;
+            item.Image = await GenerateItemCard(item, itemImage);
+            itemImage?.Dispose();
         });
     }
 
