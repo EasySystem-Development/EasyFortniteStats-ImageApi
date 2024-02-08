@@ -125,7 +125,7 @@ public class AccountImageController : ControllerBase
                 item.Image,
                 50 + 256 * column + 25 * column,
                 50 + nameFontSize + 50 + row * 313 + row * 25);
-
+            item.Image?.Dispose();
             column++;
             if (column != columns) continue;
             column = 0;
@@ -181,11 +181,10 @@ public class AccountImageController : ControllerBase
 
                 if (itemImageBytes is not null)
                 {
-                    var itemImageRaw = SKBitmap.Decode(itemImageBytes);
+                    using var itemImageRaw = SKBitmap.Decode(itemImageBytes);
                     if (itemImageRaw.Width != 256 || itemImageRaw.Height != 256)
                     {
                         itemImage = itemImageRaw.Resize(new SKImageInfo(256, 256), SKFilterQuality.Medium);
-                        itemImageRaw.Dispose();
                     }
                     else
                     {
@@ -195,7 +194,8 @@ public class AccountImageController : ControllerBase
                     Directory.CreateDirectory(BASE_ITEM_IMAGE_PATH);
                     await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write,
                         FileShare.None, 4096, true);
-                    itemImage.Encode(SKEncodedImageFormat.Png, 100).SaveTo(fileStream);
+                    using var data = itemImage.Encode(SKEncodedImageFormat.Png, 100);
+                    data.SaveTo(fileStream);
                 }
             }
             else
@@ -204,6 +204,7 @@ public class AccountImageController : ControllerBase
             }
 
             item.Image = await GenerateItemCard(item, itemImage);
+            itemImage?.Dispose();
         });
     }
 
