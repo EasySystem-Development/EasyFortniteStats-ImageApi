@@ -53,8 +53,7 @@ public class AccountImageController : ControllerBase
 
         // Determine the quality of the image based on quality mapping and locker.Items.Length
         var quality = QualityMapping.FirstOrDefault(x => locker.Items.Length >= x.Count).Quality;
-        var data = lockerBitmap.Encode(SKEncodedImageFormat.Jpeg, quality);
-        return File(data.AsStream(true), "image/jpeg");
+        return File(lockerBitmap.Encode(SKEncodedImageFormat.Jpeg, quality).AsStream(true), "image/jpeg");
     }
 
     private async Task<SKBitmap> GenerateImage(Locker locker)
