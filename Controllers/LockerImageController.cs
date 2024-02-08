@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Security.Cryptography;
 using EasyFortniteStats_ImageApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using SkiaSharp;
@@ -14,6 +13,8 @@ public class AccountImageController : ControllerBase
     private readonly IHttpClientFactory _clientFactory;
     private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
+    
+    private const string BASE_ITEM_IMAGE_PATH = "data/images/locker/items";
 
     private static readonly IReadOnlyList<(int Count, int Quality)> QualityMapping = new List<(int, int)>
     {
@@ -147,9 +148,7 @@ public class AccountImageController : ControllerBase
         };
         await Parallel.ForEachAsync(locker.Items, options, async (item, token) =>
         {
-            var hash = CalculateSHA256Hash(item.Id);
-            var groupPath = $"data/images/locker/{hash[..2]}";
-            var filePath = Path.Combine(groupPath, $"{hash}.png");
+            var filePath = Path.Combine(BASE_ITEM_IMAGE_PATH, $"{item.Id}.png");
             SKBitmap? itemImage = null;
             if (!System.IO.File.Exists(filePath))
             {
@@ -193,7 +192,7 @@ public class AccountImageController : ControllerBase
                         itemImage = itemImageRaw;
                     }
 
-                    Directory.CreateDirectory(groupPath);
+                    Directory.CreateDirectory(BASE_ITEM_IMAGE_PATH);
                     await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write,
                         FileShare.None, 4096, true);
                     itemImage.Encode(SKEncodedImageFormat.Png, 100).SaveTo(fileStream);
@@ -322,11 +321,5 @@ public class AccountImageController : ControllerBase
         var filePart = uri.Segments.Last();
         var modifiedFileName = filePart.Insert(filePart.LastIndexOf('.'), $"_{size}");
         return $"{basePart}{modifiedFileName}";
-    }
-
-    private static string CalculateSHA256Hash(string itemId)
-    {
-        var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(itemId));
-        return BitConverter.ToString(hash).Replace("-", string.Empty);
     }
 }
