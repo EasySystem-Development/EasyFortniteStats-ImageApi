@@ -181,7 +181,7 @@ public class AccountImageController : ControllerBase
 
                 if (itemImageBytes is not null)
                 {
-                    using var itemImageRaw = SKBitmap.Decode(itemImageBytes);
+                    var itemImageRaw = SKBitmap.Decode(itemImageBytes);
                     if (itemImageRaw.Width != 256 || itemImageRaw.Height != 256)
                     {
                         itemImage = itemImageRaw.Resize(new SKImageInfo(256, 256), SKFilterQuality.Medium);
