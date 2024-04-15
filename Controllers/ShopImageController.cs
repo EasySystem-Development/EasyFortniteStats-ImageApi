@@ -504,56 +504,33 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private async Task<SKBitmap> GenerateBanner(string text, string[] colors)
+    private async Task<SKBitmap> GenerateBanner(string text, IReadOnlyList<string> colors)
     {
-        var fortniteFont = await _assets.GetFont(@"Assets/Fonts/Fortnite.ttf"); // don't dispose
+        var font = await _assets.GetFont(@"Assets/Fonts/HeadingNow_76BoldItalic.otf"); // don't dispose
         using var bannerPaint = new SKPaint();
         bannerPaint.IsAntialias = true;
-        bannerPaint.TextSize = 15.0f;
-        bannerPaint.Typeface = fortniteFont;
+        bannerPaint.TextSize = 17.0f;
+        bannerPaint.Typeface = font;
         bannerPaint.Color = SKColor.Parse(colors[2]);
 
         var textBounds = new SKRect();
         bannerPaint.MeasureText(text, ref textBounds);
 
-        var imageInfo = new SKImageInfo(9 + (int) textBounds.Width + 8, 31);
+        var imageInfo = new SKImageInfo(13 + (int) textBounds.Width + 13, 34);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
-        using (var outerBorderPaint = new SKPaint())
+        using (var backgroundPaint = new SKPaint())
         {
-            outerBorderPaint.IsAntialias = true;
-            outerBorderPaint.Color = SKColor.Parse(colors[0]);
-            outerBorderPaint.Style = SKPaintStyle.Fill;
+            backgroundPaint.IsAntialias = true;
+            backgroundPaint.Color = SKColor.Parse(colors[2]);
+            backgroundPaint.Style = SKPaintStyle.Fill;
 
-            using var path = new SKPath();
-            path.MoveTo(0, 2);
-            path.LineTo(imageInfo.Width, 0);
-            path.LineTo(imageInfo.Width - 6, imageInfo.Height);
-            path.LineTo(3, imageInfo.Height - 1);
-            path.Close();
-
-            canvas.DrawPath(path, outerBorderPaint);
-        }
-
-        using (var innerBorderPaint = new SKPaint())
-        {
-            innerBorderPaint.IsAntialias = true;
-            innerBorderPaint.Color = SKColor.Parse(colors[1]);
-            innerBorderPaint.Style = SKPaintStyle.Fill;
-
-            using var path = new SKPath();
-            path.MoveTo(4, 6);
-            path.LineTo(imageInfo.Width - 5, 4);
-            path.LineTo(imageInfo.Width - 9, imageInfo.Height - 3);
-            path.LineTo(6, imageInfo.Height - 4);
-            path.Close();
-
-            canvas.DrawPath(path, innerBorderPaint);
+            canvas.DrawRoundRect(new SKRect(0, 0, imageInfo.Width, imageInfo.Height), 20, 20, backgroundPaint);
         }
 
         // 6 + textBounds.Top
-        canvas.DrawText(text, 9, (float) imageInfo.Height / 2 - textBounds.MidY, bannerPaint);
+        canvas.DrawText(text, 13, (float) imageInfo.Height / 2 - textBounds.MidY, bannerPaint);
 
         return bitmap;
     }
