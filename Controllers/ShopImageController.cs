@@ -538,8 +538,8 @@ public class ShopImageController : ControllerBase
     private async Task<SKBitmap> GenerateItemCard(ShopEntry shopEntry)
     {
         var imageInfo = new SKImageInfo(
-            (int) Math.Ceiling(shopEntry.Size) * 286 + ((int) Math.Ceiling(shopEntry.Size) - 1) * 20,
-            Math.Floor(shopEntry.Size).Equals(shopEntry.Size) ? 494 : 237);
+            (int)Math.Ceiling(shopEntry.Size) * 219 + ((int)Math.Ceiling(shopEntry.Size) - 1) * 24,
+            Math.Floor(shopEntry.Size).Equals(shopEntry.Size) ? 552 : 264);
         var bitmap = new SKBitmap(imageInfo);
 
         if (shopEntry.Image is null)
@@ -547,10 +547,12 @@ public class ShopImageController : ControllerBase
 
         using var canvas = new SKCanvas(bitmap);
 
-        var imageResize = shopEntry.Size.Equals(1.0f) ? 429 : imageInfo.Width;
+        // Scale image down to fit the card
+        var imageResize = Math.Max(imageInfo.Width, imageInfo.Height);
         using var resizedImageBitmap =
             shopEntry.Image.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
 
+        // Generate background gradient for items that come without
         if (shopEntry.ImageUrl == null)
         {
             // Draw radial gradient and paste resizedImageBitmap on it
@@ -565,9 +567,9 @@ public class ShopImageController : ControllerBase
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, gradientPaint);
         }
 
-        if (shopEntry.Size.Equals(1.0f))
+        // Center image in the middle of the card, if width is bigger than the image
+        if (resizedImageBitmap.Width > imageInfo.Width)
         {
-            // Crop resized bitmap to copXY
             var cropX = (resizedImageBitmap.Width - imageInfo.Width) / 2;
             var cropRect = new SKRect(cropX, 0, cropX + imageInfo.Width, resizedImageBitmap.Height);
             canvas.DrawBitmap(resizedImageBitmap, cropRect,
@@ -575,28 +577,24 @@ public class ShopImageController : ControllerBase
         }
         else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
 
+        // Draw V-Bucks icon
         var vbucksBitmap = await _assets.GetBitmap(@"Assets/Images/Shop/vbucks_icon.png"); // don't dispose
-        using var overlayImage = ImageUtils.GenerateItemCardOverlay(imageInfo.Width, vbucksBitmap);
-        canvas.DrawBitmap(overlayImage, new SKPoint(0, imageInfo.Height - overlayImage.Height));
-
-        using var rarityStripe = ImageUtils.GenerateRarityStripe(imageInfo.Width, SKColor.Parse(shopEntry.RarityColor));
-        canvas.DrawBitmap(rarityStripe,
-            new SKPoint(0, imageInfo.Height - overlayImage.Height - rarityStripe.Height + 5));
-        // TODO: Fix Transparency issues
+        canvas.DrawBitmap(vbucksBitmap, 13, imageInfo.Height - vbucksBitmap!.Height - 11);
 
         if (!shopEntry.Special) return bitmap;
         using var paint = new SKPaint();
         paint.IsAntialias = true;
-        paint.TextSize = 60.0f;
+        paint.TextSize = 35.0f;
         paint.Color = SKColors.White;
-        var fortniteFont = await _assets.GetFont(@"Assets/Fonts/Fortnite.ttf"); // don't dispose
-        paint.Typeface = fortniteFont;
+        var specialFont = await _assets.GetFont(@"Assets/Fonts/HeadingNow_76BoldItalic.otf"); // don't dispose
+        paint.Typeface = specialFont;
         paint.TextAlign = SKTextAlign.Right;
 
         var textBounds = new SKRect();
         paint.MeasureText("+", ref textBounds);
 
-        canvas.DrawText("+", imageInfo.Width - 10, imageInfo.Height - overlayImage.Height - 15, paint);
+        canvas.DrawText("+", imageInfo.Width - textBounds.Width - 18, imageInfo.Height - textBounds.Height + 3,
+            paint);
 
         return bitmap;
     }
