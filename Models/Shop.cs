@@ -20,6 +20,8 @@ public class ShopSection
     public string Id { get; set; }
     public string? Name { get; set; }
     public ShopEntry[] Entries { get; set; }
+
+    public int? OverflowCount { get; set; }
 }
 
 public class ShopEntry
@@ -31,7 +33,6 @@ public class ShopEntry
     public string[]? BannerColor { get; set; }
     public float Size { get; set; }
     public string Name { get; set; }
-    public string RarityColor { get; set; }
     public string? ImageUrl { get; set; }
     public string FallbackImageUrl { get; set; }
     public bool Special { get; set; }
