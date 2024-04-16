@@ -147,8 +147,8 @@ public class ShopImageController : ControllerBase
             using var paint = new SKPaint();
             paint.IsAntialias = true;
             paint.Shader = SKShader.CreateLinearGradient(
-                new SKPoint((float) imageInfo.Width / 2, 0),
-                new SKPoint((float) imageInfo.Width / 2, imageInfo.Height),
+                new SKPoint((float)imageInfo.Width / 2, 0),
+                new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
                 [new SKColor(44, 154, 234), new SKColor(14, 53, 147)],
                 [0.0f, 1.0f],
                 SKShaderTileMode.Repeat);
@@ -216,7 +216,7 @@ public class ShopImageController : ControllerBase
 
             var shopTitleTextBounds = new SKRect();
             shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
-            shopTitleWidth = (int) shopTitleTextBounds.Width;
+            shopTitleWidth = (int)shopTitleTextBounds.Width;
 
             canvas.DrawText(shop.Title, 100, 100 - shopTitleTextBounds.Top, shopTitlePaint);
         }
@@ -330,7 +330,7 @@ public class ShopImageController : ControllerBase
                     canvas.DrawLine(strikeStart, strikeEnd, strikePaint);
                 }
 
-                if (shopEntry is {BannerText: not null, BannerColor: not null})
+                if (shopEntry is { BannerText: not null, BannerColor: not null })
                 {
                     using var bannerBitmap = await GenerateBanner(shopEntry.BannerText, shopEntry.BannerColor);
                     canvas.DrawBitmap(bannerBitmap, entryLocationData.Banner!.X, entryLocationData.Banner.Y);
@@ -346,7 +346,7 @@ public class ShopImageController : ControllerBase
         var sectionWidths = new List<int[]>();
         var columns = new List<ShopSection[]>();
 
-        var numColumns = (int) Math.Ceiling((double) shop.Sections.Length / COLUMN_SECTIONS);
+        var numColumns = (int)Math.Ceiling((double)shop.Sections.Length / COLUMN_SECTIONS);
         var sectionsPerColumn = shop.Sections.Length / numColumns;
         if (shop.Sections.Length % numColumns > 0)
             sectionsPerColumn++;
@@ -357,7 +357,7 @@ public class ShopImageController : ControllerBase
             var endIndex = (i + 1) * sectionsPerColumn;
 
             columns.Add(shop.Sections.Skip(startIndex).Take(endIndex - startIndex).ToArray());
-            sectionWidths.Add(columns[i].Select(x => (int) x.Entries.Sum(y => y.Size)).ToArray());
+            sectionWidths.Add(columns[i].Select(x => (int)x.Entries.Sum(y => y.Size)).ToArray());
         }
 
         var maxSectionWidths = sectionWidths.Select(x => x.Max()).ToArray();
@@ -391,7 +391,7 @@ public class ShopImageController : ControllerBase
                 var k = 0f;
                 foreach (var entry in section.Entries)
                 {
-                    int entryX = (int) k * 286 + (int) k * 20, entryY = MathF.Floor(k).Equals(k) ? 0 : 237 + 20;
+                    int entryX = (int)k * 286 + (int)k * 20, entryY = MathF.Floor(k).Equals(k) ? 0 : 237 + 20;
                     using var itemCardBitmap = await GenerateItemCard(entry);
                     sectionCanvas.DrawBitmap(itemCardBitmap, new SKPoint(entryX, entryY));
 
@@ -433,7 +433,7 @@ public class ShopImageController : ControllerBase
             var footerBounds = new SKRect();
             footerPaint.MeasureText(footerText, ref footerBounds);
 
-            canvas.DrawText(footerText, (float) imageInfo.Width / 2, imageInfo.Height + footerBounds.Top, footerPaint);
+            canvas.DrawText(footerText, (float)imageInfo.Width / 2, imageInfo.Height + footerBounds.Top, footerPaint);
         }
 
         return (shopLocationData, bitmap);
@@ -474,31 +474,31 @@ public class ShopImageController : ControllerBase
         }
 
         var imageInfo = new SKImageInfo(
-            50 + (int) creatorCodeTitleBounds.Width + 30 + 15 + 30 + (int) creatorCodeBounds.Width + 50, height);
+            50 + (int)creatorCodeTitleBounds.Width + 30 + 15 + 30 + (int)creatorCodeBounds.Width + 50, height);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
         using (var boxPaint = new SKPaint())
         {
             boxPaint.IsAntialias = true;
-            boxPaint.Color = SKColors.White.WithAlpha((int) (.5 * 255));
+            boxPaint.Color = SKColors.White.WithAlpha((int)(.5 * 255));
             boxPaint.Style = SKPaintStyle.Fill;
             canvas.DrawRoundRect(new SKRect(0, 0, imageInfo.Width, imageInfo.Height), 100, 100, boxPaint);
         }
 
-        canvas.DrawText(creatorCodeTitle, 50, (float) imageInfo.Height / 2 - creatorCodeTitleBounds.MidY,
+        canvas.DrawText(creatorCodeTitle, 50, (float)imageInfo.Height / 2 - creatorCodeTitleBounds.MidY,
             creatorCodeTitlePaint);
-        canvas.DrawText(creatorCode, imageInfo.Width - 50, (float) imageInfo.Height / 2 - creatorCodeBounds.MidY,
+        canvas.DrawText(creatorCode, imageInfo.Width - 50, (float)imageInfo.Height / 2 - creatorCodeBounds.MidY,
             creatorCodePaint);
 
         using (var splitPaint = new SKPaint())
         {
             splitPaint.IsAntialias = true;
-            splitPaint.Color = SKColors.White.WithAlpha((int) (.3 * 255));
+            splitPaint.Color = SKColors.White.WithAlpha((int)(.3 * 255));
             splitPaint.Style = SKPaintStyle.Fill;
 
             canvas.DrawRoundRect(50 + creatorCodeTitleBounds.Width + 30,
-                (float) (imageInfo.Height - splitHeight) / 2, 15, splitHeight, 10, 10, splitPaint);
+                (float)(imageInfo.Height - splitHeight) / 2, 15, splitHeight, 10, 10, splitPaint);
         }
 
         return bitmap;
@@ -516,7 +516,7 @@ public class ShopImageController : ControllerBase
         var textBounds = new SKRect();
         bannerPaint.MeasureText(text, ref textBounds);
 
-        var imageInfo = new SKImageInfo(13 + (int) textBounds.Width + 13, 34);
+        var imageInfo = new SKImageInfo(13 + (int)textBounds.Width + 13, 34);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
@@ -530,7 +530,7 @@ public class ShopImageController : ControllerBase
         }
 
         // 6 + textBounds.Top
-        canvas.DrawText(text, 13, (float) imageInfo.Height / 2 - textBounds.MidY, bannerPaint);
+        canvas.DrawText(text, 13, (float)imageInfo.Height / 2 - textBounds.MidY, bannerPaint);
 
         return bitmap;
     }
