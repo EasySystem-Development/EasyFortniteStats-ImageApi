@@ -379,7 +379,7 @@ public class ShopImageController : ControllerBase
             for (var j = 0; j < columnSections.Length; j++)
             {
                 var section = columnSections[j];
-                var sectionImageInfo = new SKImageInfo(sectionWidths[i][j] * 286 + (sectionWidths[i][j] - 1) * 20, 494);
+                var sectionImageInfo = new SKImageInfo(sectionWidths[i][j] * 220 + 4 * 24, 494);
                 using var sectionBitmap = new SKBitmap(sectionImageInfo);
                 using var sectionCanvas = new SKCanvas(sectionBitmap);
 
@@ -393,7 +393,11 @@ public class ShopImageController : ControllerBase
                 {
                     int entryX = (int)k * 286 + (int)k * 20, entryY = MathF.Floor(k).Equals(k) ? 0 : 237 + 20;
                     using var itemCardBitmap = await GenerateItemCard(entry);
-                    sectionCanvas.DrawBitmap(itemCardBitmap, new SKPoint(entryX, entryY));
+                    using var itemCardPaint = new SKPaint();
+                    itemCardPaint.IsAntialias = true;
+                    itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap);
+                    sectionCanvas.DrawRoundRect(entryX, entryY, itemCardBitmap.Width, itemCardBitmap.Height, 20, 20,
+                        itemCardPaint);
 
                     k += entry.Size;
 
@@ -511,7 +515,7 @@ public class ShopImageController : ControllerBase
         bannerPaint.IsAntialias = true;
         bannerPaint.TextSize = 17.0f;
         bannerPaint.Typeface = font;
-        bannerPaint.Color = SKColor.Parse(colors[2]);
+        bannerPaint.Color = SKColor.Parse(colors[1]);
 
         var textBounds = new SKRect();
         bannerPaint.MeasureText(text, ref textBounds);
@@ -523,7 +527,7 @@ public class ShopImageController : ControllerBase
         using (var backgroundPaint = new SKPaint())
         {
             backgroundPaint.IsAntialias = true;
-            backgroundPaint.Color = SKColor.Parse(colors[2]);
+            backgroundPaint.Color = SKColor.Parse(colors[0]);
             backgroundPaint.Style = SKPaintStyle.Fill;
 
             canvas.DrawRoundRect(new SKRect(0, 0, imageInfo.Width, imageInfo.Height), 20, 20, backgroundPaint);
@@ -538,7 +542,7 @@ public class ShopImageController : ControllerBase
     private async Task<SKBitmap> GenerateItemCard(ShopEntry shopEntry)
     {
         var imageInfo = new SKImageInfo(
-            (int)Math.Ceiling(shopEntry.Size) * 219 + ((int)Math.Ceiling(shopEntry.Size) - 1) * 24,
+            (int)Math.Ceiling(shopEntry.Size) * 220 + ((int)Math.Ceiling(shopEntry.Size) - 1) * 24,
             Math.Floor(shopEntry.Size).Equals(shopEntry.Size) ? 552 : 264);
         var bitmap = new SKBitmap(imageInfo);
 
