@@ -27,17 +27,22 @@ public class ShopSection
 public class ShopEntry
 {
     public string Id { get; set; }
-    public int RegularPrice { get; set; }
-    public int FinalPrice { get; set; }
-    public string? BannerText { get; set; }
-    public string[]? BannerColor { get; set; }
+    public string RegularPrice { get; set; }
+    public string FinalPrice { get; set; }
+    public ShopEntryBanner? Banner { get; set; }
     public float Size { get; set; }
     public string Name { get; set; }
     public string? ImageUrl { get; set; }
     public string FallbackImageUrl { get; set; }
-    public bool Special { get; set; }
+    public bool IsSpecial { get; set; }
 
     [JsonIgnore] public SKBitmap? Image { get; set; }
+}
+
+public class ShopEntryBanner
+{
+    public string Text { get; set; }
+    public string[] Colors { get; set; }
 }
 
 public class ShopSectionLocationData
@@ -78,14 +83,14 @@ public class ShopLocationDataEntry
         Y = y;
     }
     
-    public ShopLocationDataEntry(int x, int y, int width)
+    public ShopLocationDataEntry(int x, int y, int maxWidth)
     {
         X = x;
         Y = y;
-        Width = width;
+        MaxWidth = maxWidth;
     }
     
     public int X { get; }
     public int Y { get; }
-    public int? Width { get; }
+    public int? MaxWidth { get; }
 }
