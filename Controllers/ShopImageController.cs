@@ -15,7 +15,6 @@ public class ShopImageController : ControllerBase
     private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
 
-    private const int COLUMN_SECTIONS = 6;
 
     private static readonly MemoryCacheEntryOptions ShopImageCacheOptions = new()
     {
@@ -278,7 +277,7 @@ public class ShopImageController : ControllerBase
                     entryNamePaint.MeasureText(shopEntry.Name, ref entryNameTextBounds);
 
                     var textPoint = new SKPoint(
-                        entryLocationData.Name.X + entryLocationData.Name.Width!.Value / 2f,
+                        entryLocationData.Name.X, //+ entryLocationData.Name.Width!.Value / 2f,
                         entryLocationData.Name.Y + entryNameTextBounds.Height);
                     canvas.DrawText(shopEntry.Name, textPoint, entryNamePaint);
                 }
@@ -346,25 +345,26 @@ public class ShopImageController : ControllerBase
         {
             var section = shop.Sections[i];
             var sectionImageInfo = new SKImageInfo(5 * 220 + 4 * 24,
-                (section.Name != null ? 57 + 8 : 0) + 552 + (section.OverflowCount > 0 ? 56 + 24 : 0));
+                (section.Name != null ? 57 + 8 : 0) + 552 + (section.OverflowCount > 0 ? 24 + 56 : 0));
             using var sectionBitmap = new SKBitmap(sectionImageInfo);
             using var sectionCanvas = new SKCanvas(sectionBitmap);
 
-            var curPos = 0f;
+            var position = 0f;
             var shopEntryData = new List<ShopEntryLocationData>();
             foreach (var entry in section.Entries)
             {
                 // If the next card is full height, we can't fit it in the current column
-                if (!MathF.Floor(curPos).Equals(curPos) && entry.Size >= 1)
-                    curPos = MathF.Ceiling(curPos);
-                var x = (int)curPos * 220 + (int)curPos * 24;
-                var y = (section.Name != null ? 57 + 8 : 0) + (MathF.Floor(curPos).Equals(curPos) ? 0 : 264 + 24);
-                curPos += entry.Size;
+                if (!MathF.Floor(position).Equals(position) && entry.Size >= 1)
+                    position = MathF.Ceiling(position);
+                var x = (int)position * 220 + (int)position * 24;
+                var y = (section.Name != null ? 57 + 8 : 0) + (MathF.Floor(position).Equals(position) ? 0 : 264 + 24);
+                position += entry.Size;
 
                 using var itemCardBitmap = await GenerateItemCard(entry);
                 using var itemCardPaint = new SKPaint();
                 itemCardPaint.IsAntialias = true;
-                itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap);
+                itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap, SKShaderTileMode.Clamp,
+                    SKShaderTileMode.Clamp, SKMatrix.CreateTranslation(x, y));
                 sectionCanvas.DrawRoundRect(x, y, itemCardBitmap.Width, itemCardBitmap.Height, 20, 20,
                     itemCardPaint);
 
@@ -379,50 +379,23 @@ public class ShopImageController : ControllerBase
                 shopEntryData.Add(new ShopEntryLocationData(entry.Id, nameLocationData, priceLocationData,
                     bannerLocationData));
             }
-        }
 
-
-        var shopLocationData = new ShopSectionLocationData[shop.Sections.Length];
-        var iSec = 0;
-        for (var i = 0; i < columns.Count; i++)
-        {
-            var columnSections = columns[i];
-            for (var j = 0; j < columnSections.Length; j++)
+            if (section.OverflowCount > 0)
             {
-                var section = columnSections[j];
-                var sectionImageInfo = new SKImageInfo(sectionWidths[i][j] * 220 + 4 * 24, 552);
-                using var sectionBitmap = new SKBitmap(sectionImageInfo);
-                using var sectionCanvas = new SKCanvas(sectionBitmap);
+                using var overflowBoxPaint = new SKPaint();
+                overflowBoxPaint.IsAntialias = true;
+                overflowBoxPaint.Color = SKColors.White;
 
-                var sectionX = 100 + i * 50 +
-                               maxSectionWidths.Take(i).Sum(maxWidth => maxWidth * 286 + (maxWidth - 1) * 20);
-                var sectionY = 100 + 270 + 100 + (82 + 494) * j;
-                var shopEntryData = new List<ShopEntryLocationData>();
-
-                var k = 0f;
-                foreach (var entry in section.Entries)
-                {
-                    int entryX = (int)k * 286 + (int)k * 20, entryY = MathF.Floor(k).Equals(k) ? 0 : 237 + 20;
-                    using var itemCardBitmap = await GenerateItemCard(entry);
-                    using var itemCardPaint = new SKPaint();
-                    itemCardPaint.IsAntialias = true;
-                    itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap);
-                    sectionCanvas.DrawRoundRect(entryX, entryY, itemCardBitmap.Width, itemCardBitmap.Height, 20, 20,
-                        itemCardPaint);
-
-                    k += entry.Size;
-                }
-
-                ShopLocationDataEntry? sectionNameLocationData = null;
-                if (section.Name != null)
-                    sectionNameLocationData = new ShopLocationDataEntry(sectionX + 28, sectionY - 45 - 8);
-
-                shopLocationData[iSec] =
-                    new ShopSectionLocationData(section.Id, sectionNameLocationData, shopEntryData.ToArray());
-                canvas.DrawBitmap(sectionBitmap, new SKPoint(sectionX, sectionY));
-                iSec++;
+                sectionCanvas.DrawRoundRect(0, (section.Name != null ? 57 + 8 : 0) + 552 + 24, sectionImageInfo.Width,
+                    56, 15, 15, overflowBoxPaint);
             }
+            // Save section image
+            await using var fileStream = new FileStream($"test/{section.Id}.png", FileMode.Create, FileAccess.Write,
+                FileShare.None, 4096, true);
+            using var data = sectionBitmap.Encode(SKEncodedImageFormat.Png, 100);
+            data.SaveTo(fileStream);
         }
+
 
         using (var footerPaint = new SKPaint())
         {
@@ -438,7 +411,7 @@ public class ShopImageController : ControllerBase
             var footerBounds = new SKRect();
             footerPaint.MeasureText(footerText, ref footerBounds);
 
-            canvas.DrawText(footerText, (float)imageInfo.Width / 2, imageInfo.Height + footerBounds.Top, footerPaint);
+            //canvas.DrawText(footerText, (float)imageInfo.Width / 2, imageInfo.Height + footerBounds.Top, footerPaint);
         }
 
         return (shopLocationData, bitmap);
@@ -586,20 +559,22 @@ public class ShopImageController : ControllerBase
         var vbucksBitmap = await _assets.GetBitmap(@"Assets/Images/Shop/vbucks_icon.png"); // don't dispose
         canvas.DrawBitmap(vbucksBitmap, 13, imageInfo.Height - vbucksBitmap!.Height - 11);
 
-        if (!shopEntry.IsSpecial) return bitmap;
-        using var paint = new SKPaint();
-        paint.IsAntialias = true;
-        paint.TextSize = 35.0f;
-        paint.Color = SKColors.White;
-        var specialFont = await _assets.GetFont(@"Assets/Fonts/HeadingNow_76BoldItalic.otf"); // don't dispose
-        paint.Typeface = specialFont;
-        paint.TextAlign = SKTextAlign.Right;
+        if (shopEntry.IsSpecial)
+        {
+            using var paint = new SKPaint();
+            paint.IsAntialias = true;
+            paint.TextSize = 35.0f;
+            paint.Color = SKColors.White;
+            var specialFont = await _assets.GetFont(@"Assets/Fonts/HeadingNow_74Regular.otf"); // don't dispose
+            paint.Typeface = specialFont;
+            paint.TextAlign = SKTextAlign.Right;
 
-        var textBounds = new SKRect();
-        paint.MeasureText("+", ref textBounds);
+            var textBounds = new SKRect();
+            paint.MeasureText("+", ref textBounds);
 
-        canvas.DrawText("+", imageInfo.Width - textBounds.Width - 18, imageInfo.Height - textBounds.Height + 3,
-            paint);
+            canvas.DrawText("+", imageInfo.Width - 18, imageInfo.Height - textBounds.Height + 3,
+                paint);
+        }
 
         return bitmap;
     }
