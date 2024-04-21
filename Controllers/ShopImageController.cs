@@ -15,6 +15,14 @@ public class ShopImageController : ControllerBase
     private readonly NamedLock _namedLock;
     private readonly SharedAssets _assets;
 
+    // Constants
+    private const int HORIZONTAL_PADDING = 100;
+    private const int COLUMN_SPACE = 100;
+    private const int CARD_WIDTH = 220;
+    private const int CARD_HEIGHT = 552;
+    private const int CARD_SPACE = 24;
+    private const int CARDS_PER_SECTION = 5;
+
 
     private static readonly MemoryCacheEntryOptions ShopImageCacheOptions = new()
     {
@@ -341,59 +349,81 @@ public class ShopImageController : ControllerBase
 
     private async Task<(ShopSectionLocationData[], SKBitmap)> GenerateTemplate(Shop shop)
     {
-        for (var i = 0; i < shop.Sections.Length; i++)
+        var imageInfo = new SKImageInfo(100, 450 + 100);
+        var bitmap = new SKBitmap(imageInfo);
+        using var canvas = new SKCanvas(bitmap);
+
+        Console.WriteLine("Section count: " + shop.Sections.Length);
+
+        var bestColumnCount = 1;
+        var bestAspectRatioDiff = float.MaxValue;
+        for (var columnCount = 1; columnCount <= 15; columnCount++) // Adjust the maximum column count as needed
         {
-            var section = shop.Sections[i];
-            var sectionImageInfo = new SKImageInfo(5 * 220 + 4 * 24,
-                (section.Name != null ? 57 + 8 : 0) + 552 + (section.OverflowCount > 0 ? 24 + 56 : 0));
-            using var sectionBitmap = new SKBitmap(sectionImageInfo);
-            using var sectionCanvas = new SKCanvas(sectionBitmap);
+            // Calculate total width of the image
+            var totalWidth = HORIZONTAL_PADDING +
+                             columnCount * (CARDS_PER_SECTION * CARD_WIDTH + (CARDS_PER_SECTION - 1) * CARD_SPACE) +
+                             (columnCount - 1) * COLUMN_SPACE + HORIZONTAL_PADDING;
+            // Calculate the number of sections per column
+            var sectionsPerColumn = (shop.Sections.Length + columnCount - 1) / columnCount;
+            // Calculate height of the image
+            var totalHeight = 450 + sectionsPerColumn * 576 + 100;
+            // Calculate aspect ratio
+            var aspectRatio = (float)totalWidth / totalHeight;
+            // Calculate the difference between current aspect ratio and 1:1
+            var aspectRatioDiff = Math.Abs(aspectRatio - 1);
+            // Check if this aspect ratio is closer to 1:1
+            if (!(aspectRatioDiff < bestAspectRatioDiff)) continue;
+            bestAspectRatioDiff = aspectRatioDiff;
+            bestColumnCount = columnCount;
+        }
 
-            var position = 0f;
-            var shopEntryData = new List<ShopEntryLocationData>();
-            foreach (var entry in section.Entries)
+        var maxSectionsPerColumn = (int)Math.Ceiling((double)shop.Sections.Length / bestColumnCount);
+        Console.WriteLine(maxSectionsPerColumn);
+        for (var i = 0; i < bestColumnCount; i++)
+        {
+            var sections = shop.Sections.Skip(i * maxSectionsPerColumn).Take(maxSectionsPerColumn).ToList();
+            var shopLocationData = new ShopSectionLocationData[shop.Sections.Length];
+            for (var j = 0; j < sections.Count; j++)
             {
-                // If the next card is full height, we can't fit it in the current column
-                if (!MathF.Floor(position).Equals(position) && entry.Size >= 1)
-                    position = MathF.Ceiling(position);
-                var x = (int)position * 220 + (int)position * 24;
-                var y = (section.Name != null ? 57 + 8 : 0) + (MathF.Floor(position).Equals(position) ? 0 : 264 + 24);
-                position += entry.Size;
+                var section = sections[j];
+                var sectionImageInfo =
+                    new SKImageInfo(CARDS_PER_SECTION * CARD_WIDTH + (CARDS_PER_SECTION - 1) * CARD_SPACE,
+                        (section.Name != null ? 57 + 8 : 0) + CARD_HEIGHT);
+                using var sectionBitmap = new SKBitmap(sectionImageInfo);
+                using var sectionCanvas = new SKCanvas(sectionBitmap);
 
-                using var itemCardBitmap = await GenerateItemCard(entry);
-                using var itemCardPaint = new SKPaint();
-                itemCardPaint.IsAntialias = true;
-                itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap, SKShaderTileMode.Clamp,
-                    SKShaderTileMode.Clamp, SKMatrix.CreateTranslation(x, y));
-                sectionCanvas.DrawRoundRect(x, y, itemCardBitmap.Width, itemCardBitmap.Height, 20, 20,
-                    itemCardPaint);
+                var position = 0f;
+                var shopEntryData = new List<ShopEntryLocationData>();
+                foreach (var entry in section.Entries)
+                {
+                    // If the next card is full height, we can't fit it in the current column
+                    if (!MathF.Floor(position).Equals(position) && entry.Size >= 1)
+                        position = MathF.Ceiling(position);
+                    var x = (int)position * CARD_WIDTH + (int)position * CARD_HEIGHT;
+                    var y = (section.Name != null ? 57 + 8 : 0) +
+                            (MathF.Floor(position).Equals(position) ? 0 : CARD_HEIGHT / 2 + CARD_SPACE);
+                    position += entry.Size;
 
-                var nameLocationData = new ShopLocationDataEntry(x + 13,
-                    y + itemCardBitmap.Height + itemCardBitmap.Height - 72, itemCardBitmap.Width);
-                var priceLocationData = new ShopLocationDataEntry(x + 22 + 8 + itemCardBitmap.Width - 41,
-                    y + itemCardBitmap.Height - 36);
-                ShopLocationDataEntry? bannerLocationData = null;
-                if (entry.Banner != null)
-                    bannerLocationData =
-                        new ShopLocationDataEntry(x + 8, y + 8, itemCardBitmap.Width - 2 * 8);
-                shopEntryData.Add(new ShopEntryLocationData(entry.Id, nameLocationData, priceLocationData,
-                    bannerLocationData));
+                    using var itemCardBitmap = await GenerateItemCard(entry);
+                    using var itemCardPaint = new SKPaint();
+                    itemCardPaint.IsAntialias = true;
+                    itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap, SKShaderTileMode.Clamp,
+                        SKShaderTileMode.Clamp, SKMatrix.CreateTranslation(x, y));
+                    sectionCanvas.DrawRoundRect(x, y, itemCardBitmap.Width, itemCardBitmap.Height, 20, 20,
+                        itemCardPaint);
+
+                    var nameLocationData = new ShopLocationDataEntry(x + 13,
+                        y + itemCardBitmap.Height + itemCardBitmap.Height - 72, itemCardBitmap.Width);
+                    var priceLocationData = new ShopLocationDataEntry(x + 22 + 8 + itemCardBitmap.Width - 41,
+                        y + itemCardBitmap.Height - 36);
+                    ShopLocationDataEntry? bannerLocationData = null;
+                    if (entry.Banner != null)
+                        bannerLocationData =
+                            new ShopLocationDataEntry(x + 8, y + 8, itemCardBitmap.Width - 2 * 8);
+                    shopEntryData.Add(new ShopEntryLocationData(entry.Id, nameLocationData, priceLocationData,
+                        bannerLocationData));
+                }
             }
-
-            if (section.OverflowCount > 0)
-            {
-                using var overflowBoxPaint = new SKPaint();
-                overflowBoxPaint.IsAntialias = true;
-                overflowBoxPaint.Color = SKColors.White;
-
-                sectionCanvas.DrawRoundRect(0, (section.Name != null ? 57 + 8 : 0) + 552 + 24, sectionImageInfo.Width,
-                    56, 15, 15, overflowBoxPaint);
-            }
-            // Save section image
-            await using var fileStream = new FileStream($"test/{section.Id}.png", FileMode.Create, FileAccess.Write,
-                FileShare.None, 4096, true);
-            using var data = sectionBitmap.Encode(SKEncodedImageFormat.Png, 100);
-            data.SaveTo(fileStream);
         }
 
 
@@ -516,8 +546,8 @@ public class ShopImageController : ControllerBase
     private async Task<SKBitmap> GenerateItemCard(ShopEntry shopEntry)
     {
         var imageInfo = new SKImageInfo(
-            (int)Math.Ceiling(shopEntry.Size) * 220 + ((int)Math.Ceiling(shopEntry.Size) - 1) * 24,
-            Math.Floor(shopEntry.Size).Equals(shopEntry.Size) ? 552 : 264);
+            (int)Math.Ceiling(shopEntry.Size) * CARD_WIDTH + ((int)Math.Ceiling(shopEntry.Size) - 1) * CARD_SPACE,
+            Math.Floor(shopEntry.Size).Equals(shopEntry.Size) ? CARD_HEIGHT : CARD_HEIGHT / 2 - CARD_SPACE / 2);
         var bitmap = new SKBitmap(imageInfo);
 
         if (shopEntry.Image is null)

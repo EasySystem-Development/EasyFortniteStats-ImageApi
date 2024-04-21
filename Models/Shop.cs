@@ -20,7 +20,6 @@ public class ShopSection
     public string Id { get; set; }
     public string? Name { get; set; }
     public ShopEntry[] Entries { get; set; }
-    public int? OverflowCount { get; set; }
 }
 
 public class ShopEntry
