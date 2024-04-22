@@ -150,8 +150,6 @@ public class ShopImageController : ControllerBase
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
-        var cornerRadius = imageInfo.Width * 0.03f;
-
         var backgroundBitmap = await _assets.GetBitmap("data/images/{0}", shop.BackgroundImagePath); // don't dispose
         if (backgroundBitmap is null)
         {
@@ -164,7 +162,7 @@ public class ShopImageController : ControllerBase
                 [0.0f, 1.0f],
                 SKShaderTileMode.Repeat);
 
-            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, cornerRadius, cornerRadius, paint);
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, paint);
         }
         else
         {
@@ -212,15 +210,12 @@ public class ShopImageController : ControllerBase
 
         canvas.DrawBitmap(templateBitmap, SKPoint.Empty);
 
-        var fortniteFont = await _assets.GetFont(@"Assets/Fonts/Fortnite.ttf"); // don't dispose
-
         // Drawing the shop title
         int shopTitleWidth;
         using (var shopTitlePaint = new SKPaint())
         {
-            // TODO: Make dynamic. Solve narrow layouts
             shopTitlePaint.IsAntialias = true;
-            shopTitlePaint.TextSize = 250.0f;
+            shopTitlePaint.TextSize = 200.0f;
             shopTitlePaint.Color = SKColors.White;
             shopTitlePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_86Bold.otf");
 
@@ -228,7 +223,7 @@ public class ShopImageController : ControllerBase
             shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
             shopTitleWidth = (int)shopTitleTextBounds.Width;
 
-            canvas.DrawText(shop.Title, 100, 100 - shopTitleTextBounds.Top, shopTitlePaint);
+            canvas.DrawText(shop.Title, 100, 50 - shopTitleTextBounds.Top, shopTitlePaint);
         }
 
         // Drawing the date
@@ -237,15 +232,16 @@ public class ShopImageController : ControllerBase
             datePaint.IsAntialias = true;
             datePaint.TextSize = 50.0f;
             datePaint.Color = SKColors.White;
-            datePaint.Typeface = fortniteFont;
+            datePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_86BoldItalic.otf");
             datePaint.TextAlign = SKTextAlign.Center;
 
             var dateTextBounds = new SKRect();
             datePaint.MeasureText(shop.Title, ref dateTextBounds);
 
+            Console.WriteLine($"{100 + shopTitleWidth / 2f} | {dateTextBounds.Width}");
             var datePoint = new SKPoint(
-                100 + shopTitleWidth / 2f,
-                300 - dateTextBounds.Top);
+                Math.Max(100 + shopTitleWidth / 2f, 100 + dateTextBounds.Width),
+                313 - dateTextBounds.Top);
             canvas.DrawText(shop.Date, datePoint, datePaint);
         }
 
@@ -258,9 +254,9 @@ public class ShopImageController : ControllerBase
             {
                 using var sectionNamePaint = new SKPaint();
                 sectionNamePaint.IsAntialias = true;
-                sectionNamePaint.TextSize = 45.0f;
+                sectionNamePaint.TextSize = 43.0f;
                 sectionNamePaint.Color = SKColors.White;
-                sectionNamePaint.Typeface = fortniteFont;
+                sectionNamePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_86BoldItalic.otf");
 
                 var sectionNameTextBounds = new SKRect();
                 sectionNamePaint.MeasureText(shop.Title, ref sectionNameTextBounds);
@@ -280,9 +276,9 @@ public class ShopImageController : ControllerBase
                 using (var entryNamePaint = new SKPaint())
                 {
                     entryNamePaint.IsAntialias = true;
-                    entryNamePaint.TextSize = 20.0f;
+                    entryNamePaint.TextSize = 27.0f;
                     entryNamePaint.Color = SKColors.White;
-                    entryNamePaint.Typeface = fortniteFont;
+                    entryNamePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_75Medium.otf");
                     entryNamePaint.TextAlign = SKTextAlign.Center;
 
                     var entryNameTextBounds = new SKRect();
@@ -297,9 +293,9 @@ public class ShopImageController : ControllerBase
                 // Draw the shop entry price
                 using var pricePaint = new SKPaint();
                 pricePaint.IsAntialias = true;
-                pricePaint.TextSize = 15.0f;
+                pricePaint.TextSize = 21.0f;
                 pricePaint.Color = SKColors.White;
-                pricePaint.Typeface = fortniteFont;
+                pricePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_75Medium.otf");
                 pricePaint.TextAlign = SKTextAlign.Right;
 
                 var priceTextBounds = new SKRect();
@@ -315,9 +311,9 @@ public class ShopImageController : ControllerBase
                 {
                     using var oldPricePaint = new SKPaint();
                     oldPricePaint.IsAntialias = true;
-                    oldPricePaint.TextSize = 15.0f;
+                    oldPricePaint.TextSize = 21.0f;
                     oldPricePaint.Color = new SKColor(99, 99, 99);
-                    oldPricePaint.Typeface = fortniteFont;
+                    oldPricePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_75Medium.otf");;
                     oldPricePaint.TextAlign = SKTextAlign.Right;
 
                     var oldPriceTextBounds = new SKRect();
