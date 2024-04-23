@@ -1,4 +1,6 @@
-﻿using EasyFortniteStats_ImageApi.Models;
+﻿using System.Text;
+using System.Text.RegularExpressions;
+using EasyFortniteStats_ImageApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using SkiaSharp;
@@ -8,7 +10,7 @@ namespace EasyFortniteStats_ImageApi.Controllers;
 
 [ApiController]
 [Route("shop")]
-public class ShopImageController : ControllerBase
+public partial class ShopImageController : ControllerBase
 {
     private readonly IMemoryCache _cache;
     private readonly IHttpClientFactory _clientFactory;
@@ -20,10 +22,11 @@ public class ShopImageController : ControllerBase
     private const int BOTTOM_PADDING = 100;
     private const int HEADER_HEIGHT = 450;
     private const int COLUMN_SPACE = 100;
+    private const int CARDS_PER_SECTION = 5;
     private const int CARD_WIDTH = 220;
     private const int CARD_HEIGHT = 552;
     private const int CARD_SPACE = 24;
-    private const int CARDS_PER_SECTION = 5;
+    private const int CARD_PADDING = 12;
     private const int SECTION_WIDTH = CARDS_PER_SECTION * CARD_WIDTH + (CARDS_PER_SECTION - 1) * CARD_SPACE;
     private const int SECTION_HEIGHT = CARD_HEIGHT + 57;
 
@@ -223,7 +226,7 @@ public class ShopImageController : ControllerBase
             shopTitlePaint.IsAntialias = true;
             shopTitlePaint.TextSize = TITLE_FONT_SIZE;
             shopTitlePaint.Color = SKColors.White;
-            shopTitlePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_86Bold.otf");
+            shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
 
             var shopTitleTextBounds = new SKRect();
             shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
@@ -238,7 +241,7 @@ public class ShopImageController : ControllerBase
             datePaint.IsAntialias = true;
             datePaint.TextSize = DATE_FONT_SIZE;
             datePaint.Color = SKColors.White;
-            datePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_86BoldItalic.otf");
+            datePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86BoldItalic.otf");
             datePaint.TextAlign = SKTextAlign.Center;
 
             var dateTextBounds = new SKRect();
@@ -261,7 +264,7 @@ public class ShopImageController : ControllerBase
                 sectionNamePaint.IsAntialias = true;
                 sectionNamePaint.TextSize = SECTION_NAME_FONT_SIZE;
                 sectionNamePaint.Color = SKColors.White;
-                sectionNamePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_86BoldItalic.otf");
+                sectionNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86BoldItalic.otf");
 
                 var sectionNameTextBounds = new SKRect();
                 sectionNamePaint.MeasureText(shop.Title, ref sectionNameTextBounds);
@@ -283,14 +286,18 @@ public class ShopImageController : ControllerBase
                     entryNamePaint.IsAntialias = true;
                     entryNamePaint.TextSize = ENTRY_NAME_FONT_SIZE;
                     entryNamePaint.Color = SKColors.White;
-                    entryNamePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_75Medium.otf");
+                    entryNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
 
                     var entryNameTextBounds = new SKRect();
-                    entryNamePaint.MeasureText(shopEntry.Name, ref entryNameTextBounds);
+                    var nameLines = SplitNameText(shopEntry.Name, entryLocationData.Name.MaxWidth ?? 0, entryNamePaint);
+                    if (nameLines.Length > 1)
+                    {
+                        entryNamePaint.MeasureText(nameLines[0], ref entryNameTextBounds);
+                        canvas.DrawText(nameLines[0], entryLocationData.Name.X, entryLocationData.Name.Y + entryNameTextBounds.Height - 33, entryNamePaint);
+                    }
 
-                    var textPoint = new SKPoint(entryLocationData.Name.X,
-                        entryLocationData.Name.Y + entryNameTextBounds.Height);
-                    canvas.DrawText(shopEntry.Name, textPoint, entryNamePaint);
+                    entryNamePaint.MeasureText(nameLines.Last(), ref entryNameTextBounds);
+                    canvas.DrawText(nameLines.Last(), entryLocationData.Name.X, entryLocationData.Name.Y + entryNameTextBounds.Height, entryNamePaint);
                 }
 
                 // Draw the shop entry price
@@ -298,7 +305,7 @@ public class ShopImageController : ControllerBase
                 pricePaint.IsAntialias = true;
                 pricePaint.TextSize = ENTRY_PRICE_FONT_SIZE;
                 pricePaint.Color = SKColors.White;
-                pricePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_75Medium.otf");
+                pricePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
 
                 var priceTextBounds = new SKRect();
 
@@ -315,7 +322,7 @@ public class ShopImageController : ControllerBase
                     oldPricePaint.IsAntialias = true;
                     oldPricePaint.TextSize = ENTRY_PRICE_FONT_SIZE;
                     oldPricePaint.Color = SKColors.White.WithAlpha((int)(.6 * 255));
-                    oldPricePaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_75Medium.otf");
+                    oldPricePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
 
                     var oldPriceTextBounds = new SKRect();
 
@@ -331,14 +338,15 @@ public class ShopImageController : ControllerBase
                     strikePaint.StrokeWidth = 2f;
                     strikePaint.Color = SKColors.White.WithAlpha((int)(.6 * 255));
 
-                    var strikeStart = new SKPoint(oldPricePoint.X - 4, oldPricePoint.Y - 15);
-                    var strikeEnd = new SKPoint(oldPricePoint.X + oldPriceTextBounds.Width + 2, oldPricePoint.Y - 12);
+                    var strikeStart = new SKPoint(oldPricePoint.X - 4, oldPricePoint.Y - 9);
+                    var strikeEnd = new SKPoint(oldPricePoint.X + oldPriceTextBounds.Width + 2, oldPricePoint.Y - 6);
                     canvas.DrawLine(strikeStart, strikeEnd, strikePaint);
                 }
 
                 if (shopEntry.Banner != null)
                 {
-                    using var bannerBitmap = await GenerateBanner(shopEntry.Banner.Text, shopEntry.Banner.Colors);
+                    using var bannerBitmap = await GenerateBanner(shopEntry.Banner.Text, shopEntry.Banner.Colors,
+                        (int)entryLocationData.Banner!.MaxWidth!);
                     canvas.DrawBitmap(bannerBitmap, entryLocationData.Banner!.X, entryLocationData.Banner.Y);
                 }
             }
@@ -410,7 +418,7 @@ public class ShopImageController : ControllerBase
                         itemCardPaint);
 
                     var nameLocationData = new ShopLocationDataEntry(sectionX + entryX + 13,
-                        sectionY + entryY + itemCardBitmap.Height - 72, itemCardBitmap.Width);
+                        sectionY + entryY + itemCardBitmap.Height - 72, itemCardBitmap.Width - 2 * CARD_PADDING);
                     var priceLocationData = new ShopLocationDataEntry(sectionX + entryX + 13 + 22 + 8,
                         sectionY + entryY + itemCardBitmap.Height - 36);
                     ShopLocationDataEntry? bannerLocationData = null;
@@ -438,7 +446,7 @@ public class ShopImageController : ControllerBase
 
     private async Task<SKBitmap> GenerateCreatorCodeBox(string creatorCodeTitle, string creatorCode, float maxWidth)
     {
-        var fortniteFont = await _assets.GetFont(@"Assets/Fonts/Fortnite.ttf"); // don't dispose
+        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
 
         using var creatorCodeTitlePaint = new SKPaint();
         creatorCodeTitlePaint.IsAntialias = true;
@@ -501,12 +509,12 @@ public class ShopImageController : ControllerBase
         return bitmap;
     }
 
-    private async Task<SKBitmap> GenerateBanner(string text, IReadOnlyList<string> colors)
+    private async Task<SKBitmap> GenerateBanner(string text, IReadOnlyList<string> colors, int maxWidth)
     {
         using var bannerPaint = new SKPaint();
         bannerPaint.IsAntialias = true;
         bannerPaint.TextSize = 17.0f;
-        bannerPaint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_76BoldItalic.otf");
+        bannerPaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_76BoldItalic.otf");
         bannerPaint.Color = SKColor.Parse(colors[1]);
 
         var textBounds = new SKRect();
@@ -574,7 +582,7 @@ public class ShopImageController : ControllerBase
         else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
 
         // Draw V-Bucks icon
-        var vbucksBitmap = await _assets.GetBitmap(@"Assets/Images/Shop/vbucks_icon.png"); // don't dispose
+        var vbucksBitmap = await _assets.GetBitmap("Assets/Images/Shop/vbucks_icon.png"); // don't dispose
         canvas.DrawBitmap(vbucksBitmap, 13, imageInfo.Height - vbucksBitmap!.Height - 11);
 
         if (shopEntry.IsSpecial)
@@ -583,7 +591,7 @@ public class ShopImageController : ControllerBase
             paint.IsAntialias = true;
             paint.TextSize = 35.0f;
             paint.Color = SKColors.White;
-            paint.Typeface = await _assets.GetFont(@"Assets/Fonts/HeadingNow_74Regular.otf");
+            paint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_74Regular.otf");
             paint.TextAlign = SKTextAlign.Right;
 
             var textBounds = new SKRect();
@@ -595,4 +603,35 @@ public class ShopImageController : ControllerBase
 
         return bitmap;
     }
+
+    private static string[] SplitNameText(string text, int maxWidth, SKPaint paint)
+    {
+        var regex = NameSplitRegex();
+        var matches = regex.Matches(text);
+
+
+        var currentLine = 0;
+        var lines = new StringBuilder[] {new(), new()};
+        foreach (Match match in matches)
+        {
+            var line = lines[currentLine];
+            var bounds = new SKRect();
+            paint.MeasureText(line + match.Value, ref bounds);
+            if (bounds.Width > maxWidth) currentLine++;
+
+            if (currentLine >= 2)
+            {
+                lines[1].Append("...");
+                break;
+            }
+
+            lines[currentLine].Append(match.Value);
+        }
+
+        // Return not empty lines
+        return lines.Select(x => x.ToString()).Where(x => !string.IsNullOrEmpty(x)).ToArray();
+    }
+
+    [GeneratedRegex("([a-z0-9]+|[^a-z0-9])", RegexOptions.IgnoreCase)]
+    private static partial Regex NameSplitRegex();
 }
