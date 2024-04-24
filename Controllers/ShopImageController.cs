@@ -360,23 +360,22 @@ public partial class ShopImageController : ControllerBase
         var columnCount = 2;
         var bestAspectRatioDiff = float.MaxValue;
         int width = 0, height = 0, sectionsPerColumn = 0;
-        for (var i = columnCount; i <= 15; i++)
+        for (var curColumnCount = columnCount; curColumnCount <= 15; curColumnCount++)
         {
-            // Calculate total width of the image
-            width = HORIZONTAL_PADDING * 2 + i * SECTION_WIDTH + (i - 1) * COLUMN_SPACE;
-            // Calculate the number of sections per column
-            sectionsPerColumn = (int)Math.Ceiling((double)shop.Sections.Length / columnCount);
-            // Calculate height of the image
-            height = HEADER_HEIGHT + sectionsPerColumn * SECTION_HEIGHT + (sectionsPerColumn - 1) * CARD_SPACE +
-                     BOTTOM_PADDING;
-            // Calculate aspect ratio
-            var aspectRatio = (float)width / height;
-            // Calculate the difference between current aspect ratio and 1:1
+            var curWidth = HORIZONTAL_PADDING * 2 + curColumnCount * SECTION_WIDTH + (curColumnCount - 1) * COLUMN_SPACE;
+            var curSectionsPerColumn = (int)Math.Ceiling((double)shop.Sections.Length / curColumnCount);
+            var curHeight = HEADER_HEIGHT + curSectionsPerColumn * SECTION_HEIGHT + (curSectionsPerColumn - 1) * CARD_SPACE + BOTTOM_PADDING;
+
+            // The goal is reaching a 1:1 aspect ratio
+            var aspectRatio = (float)curWidth / curHeight;
             var aspectRatioDiff = Math.Abs(aspectRatio - 1);
-            // Check if this aspect ratio is closer to 1:1
-            if (!(aspectRatioDiff < bestAspectRatioDiff)) break;
+            if (aspectRatioDiff >= bestAspectRatioDiff) break;
+
+            width = curWidth;
+            height = curHeight;
+            sectionsPerColumn = curSectionsPerColumn;
             bestAspectRatioDiff = aspectRatioDiff;
-            columnCount = i;
+            columnCount = curColumnCount;
         }
 
         var imageInfo = new SKImageInfo(width, height);
