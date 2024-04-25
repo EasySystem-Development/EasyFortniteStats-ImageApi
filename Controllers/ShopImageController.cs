@@ -25,6 +25,7 @@ public partial class ShopImageController : ControllerBase
     private const int CARDS_PER_SECTION = 5;
     private const int CARD_WIDTH = 220;
     private const int CARD_HEIGHT = 552;
+    private const int CARD_SHADOW_HEIGHT = 120;
     private const int CARD_SPACE = 24;
     private const int CARD_PADDING = 12;
     private const int SECTION_WIDTH = CARDS_PER_SECTION * CARD_WIDTH + (CARDS_PER_SECTION - 1) * CARD_SPACE;
@@ -596,6 +597,19 @@ public partial class ShopImageController : ControllerBase
                 new SKRect(0, 0, imageInfo.Width, resizedImageBitmap.Height));
         }
         else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
+
+        if (shopEntry.ShadowColor != null)
+        {
+            using var shadowPaint = new SKPaint();
+            shadowPaint.IsAntialias = true;
+            shadowPaint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
+                new SKPoint((float)imageInfo.Width / 2, imageInfo.Height - CARD_SHADOW_HEIGHT),
+                [SKColors.Black.WithAlpha(255), SKColors.Black.WithAlpha(0)],
+                [0.0f, 1.0f],
+                SKShaderTileMode.Repeat);
+            canvas.DrawRect(0, imageInfo.Height - CARD_SHADOW_HEIGHT, imageInfo.Width, CARD_SHADOW_HEIGHT, shadowPaint);
+        }
 
         // Draw V-Bucks icon
         var vbucksBitmap = await _assets.GetBitmap("Assets/Images/Shop/vbucks_icon.png"); // don't dispose

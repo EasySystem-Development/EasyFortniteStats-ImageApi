@@ -28,6 +28,7 @@ public class ShopEntry
     public string RegularPrice { get; set; }
     public string FinalPrice { get; set; }
     public ShopEntryBanner? Banner { get; set; }
+    public string? ShadowColor { get; set; }
     public float Size { get; set; }
     public string Name { get; set; }
     public string? ImageUrl { get; set; }
