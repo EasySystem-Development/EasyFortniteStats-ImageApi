@@ -293,11 +293,13 @@ public partial class ShopImageController : ControllerBase
                     if (nameLines.Length > 1)
                     {
                         entryNamePaint.MeasureText(nameLines[0], ref entryNameTextBounds);
-                        canvas.DrawText(nameLines[0], entryLocationData.Name.X, entryLocationData.Name.Y + entryNameTextBounds.Height - 33, entryNamePaint);
+                        canvas.DrawText(nameLines[0], entryLocationData.Name.X,
+                            entryLocationData.Name.Y + entryNameTextBounds.Height - 33, entryNamePaint);
                     }
 
                     entryNamePaint.MeasureText(nameLines.Last(), ref entryNameTextBounds);
-                    canvas.DrawText(nameLines.Last(), entryLocationData.Name.X, entryLocationData.Name.Y + entryNameTextBounds.Height, entryNamePaint);
+                    canvas.DrawText(nameLines.Last(), entryLocationData.Name.X,
+                        entryLocationData.Name.Y + entryNameTextBounds.Height, entryNamePaint);
                 }
 
                 // Draw the shop entry price
@@ -362,9 +364,11 @@ public partial class ShopImageController : ControllerBase
         int width = 0, height = 0, sectionsPerColumn = 0;
         for (var curColumnCount = columnCount; curColumnCount <= 15; curColumnCount++)
         {
-            var curWidth = HORIZONTAL_PADDING * 2 + curColumnCount * SECTION_WIDTH + (curColumnCount - 1) * COLUMN_SPACE;
+            var curWidth = HORIZONTAL_PADDING * 2 + curColumnCount * SECTION_WIDTH +
+                           (curColumnCount - 1) * COLUMN_SPACE;
             var curSectionsPerColumn = (int)Math.Ceiling((double)shop.Sections.Length / curColumnCount);
-            var curHeight = HEADER_HEIGHT + curSectionsPerColumn * SECTION_HEIGHT + (curSectionsPerColumn - 1) * CARD_SPACE + BOTTOM_PADDING;
+            var curHeight = HEADER_HEIGHT + curSectionsPerColumn * SECTION_HEIGHT +
+                            (curSectionsPerColumn - 1) * CARD_SPACE + BOTTOM_PADDING;
 
             // The goal is reaching a 1:1 aspect ratio
             var aspectRatio = (float)curWidth / curHeight;
@@ -623,7 +627,7 @@ public partial class ShopImageController : ControllerBase
 
 
         var currentLine = 0;
-        var lines = new StringBuilder[] {new(), new()};
+        var lines = new StringBuilder[] { new(), new() };
         foreach (Match match in matches)
         {
             var line = lines[currentLine];
@@ -642,15 +646,16 @@ public partial class ShopImageController : ControllerBase
         // Adjust lines that are too long and add ellipsis
         foreach (var line in lines)
         {
-            var bounds = new SKRect();
-            paint.MeasureText(line.ToString(), ref bounds);
-            if (!(bounds.Width > maxWidth)) continue;
+            var textBounds = new SKRect();
+            paint.MeasureText(line.ToString(), ref textBounds);
+            if (textBounds.Width <= maxWidth) continue;
 
-            while (bounds.Width > maxWidth)
+            while (textBounds.Width > maxWidth)
             {
                 line.Remove(line.Length - 1, 1);
-                paint.MeasureText(line + "...", ref bounds);
+                paint.MeasureText(line + "...", ref textBounds);
             }
+
             line.Append("...");
         }
 
