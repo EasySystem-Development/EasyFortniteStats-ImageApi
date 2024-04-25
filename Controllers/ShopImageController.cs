@@ -518,8 +518,9 @@ public partial class ShopImageController : ControllerBase
 
         var textBounds = new SKRect();
         bannerPaint.MeasureText(text, ref textBounds);
+        var maxTextWidth = maxWidth - 2 * 13;
 
-        var imageInfo = new SKImageInfo(13 + (int)textBounds.Width + 13, 34);
+        var imageInfo = new SKImageInfo(Math.Min(2 * 13 + (int)textBounds.Width, maxWidth), 34);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
@@ -531,6 +532,18 @@ public partial class ShopImageController : ControllerBase
 
             canvas.DrawRoundRect(new SKRect(0, 0, imageInfo.Width, imageInfo.Height), 20, 20, backgroundPaint);
         }
+
+        if (textBounds.Width > maxTextWidth)
+        {
+            while (textBounds.Width > maxTextWidth)
+            {
+                text = text.Remove(text.Length - 1, 1);
+                bannerPaint.MeasureText(text + "...", ref textBounds);
+            }
+
+            text += "...";
+        }
+
 
         // 6 + textBounds.Top
         canvas.DrawText(text, 13, (float)imageInfo.Height / 2 - textBounds.MidY, bannerPaint);
