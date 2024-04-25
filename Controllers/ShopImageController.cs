@@ -617,14 +617,28 @@ public partial class ShopImageController : ControllerBase
             var bounds = new SKRect();
             paint.MeasureText(line + match.Value, ref bounds);
             if (bounds.Width > maxWidth) currentLine++;
-
             if (currentLine >= 2)
             {
-                lines[1].Append("...");
+                lines[1].Append(match.Value);
                 break;
             }
 
             lines[currentLine].Append(match.Value);
+        }
+
+        // Adjust lines that are too long and add ellipsis
+        foreach (var line in lines)
+        {
+            var bounds = new SKRect();
+            paint.MeasureText(line.ToString(), ref bounds);
+            if (!(bounds.Width > maxWidth)) continue;
+
+            while (bounds.Width > maxWidth)
+            {
+                line.Remove(line.Length - 1, 1);
+                paint.MeasureText(line + "...", ref bounds);
+            }
+            line.Append("...");
         }
 
         // Return not empty lines
