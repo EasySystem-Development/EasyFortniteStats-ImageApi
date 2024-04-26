@@ -233,7 +233,7 @@ public partial class ShopImageController : ControllerBase
             shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
             shopTitleWidth = (int)shopTitleTextBounds.Width;
 
-            canvas.DrawText(shop.Title, 100, 50 - shopTitleTextBounds.Top, shopTitlePaint);
+            canvas.DrawText(shop.Title, 100, 100 - shopTitleTextBounds.Top, shopTitlePaint);
         }
 
         // Drawing the date
@@ -424,7 +424,7 @@ public partial class ShopImageController : ControllerBase
                     var nameLocationData = new ShopLocationDataEntry(sectionX + entryX + 13,
                         sectionY + entryY + itemCardBitmap.Height - 72, itemCardBitmap.Width - 2 * CARD_PADDING);
                     var priceLocationData = new ShopLocationDataEntry(sectionX + entryX + 13 + 22 + 8,
-                        sectionY + entryY + itemCardBitmap.Height - 36);
+                        sectionY + entryY + itemCardBitmap.Height - 11 - (int) ENTRY_PRICE_FONT_SIZE);
                     ShopLocationDataEntry? bannerLocationData = null;
                     if (entry.Banner != null)
                         bannerLocationData = new ShopLocationDataEntry(sectionX + entryX + 8, sectionY + entryY + 8,
@@ -450,13 +450,11 @@ public partial class ShopImageController : ControllerBase
 
     private async Task<SKBitmap> GenerateCreatorCodeBox(string creatorCodeTitle, string creatorCode, float maxWidth)
     {
-        var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
-
         using var creatorCodeTitlePaint = new SKPaint();
         creatorCodeTitlePaint.IsAntialias = true;
         creatorCodeTitlePaint.TextSize = 130.0f;
-        creatorCodeTitlePaint.Typeface = fortniteFont;
-        creatorCodeTitlePaint.Color = SKColors.White;
+        creatorCodeTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
+        creatorCodeTitlePaint.Color = SKColors.Black;
 
         var creatorCodeTitleBounds = new SKRect();
         creatorCodeTitlePaint.MeasureText(creatorCodeTitle, ref creatorCodeTitleBounds);
@@ -464,22 +462,21 @@ public partial class ShopImageController : ControllerBase
         using var creatorCodePaint = new SKPaint();
         creatorCodePaint.IsAntialias = true;
         creatorCodePaint.TextSize = 130.0f;
-        creatorCodePaint.Typeface = fortniteFont;
-        creatorCodePaint.Color = SKColors.White;
+        creatorCodePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
+        creatorCodePaint.Color = new SKColor(178, 165, 255);
         creatorCodePaint.TextAlign = SKTextAlign.Right;
 
         var creatorCodeBounds = new SKRect();
         creatorCodeTitlePaint.MeasureText(creatorCode, ref creatorCodeBounds);
 
-        int height = 200, splitHeight = 150;
-        while (50 + creatorCodeTitleBounds.Width + 30 + 15 + 30 + creatorCodeBounds.Width + 50 > maxWidth)
+        int height = 200, splitSize = 20;
+        while (50 + creatorCodeTitleBounds.Width + 30 + splitSize + 30 + creatorCodeBounds.Width + 50 > maxWidth)
         {
             creatorCodeTitlePaint.TextSize--;
             creatorCodeTitlePaint.MeasureText(creatorCodeTitle, ref creatorCodeTitleBounds);
             creatorCodePaint.TextSize--;
             creatorCodePaint.MeasureText(creatorCode, ref creatorCodeBounds);
             height--;
-            splitHeight--;
         }
 
         var imageInfo = new SKImageInfo(
@@ -490,7 +487,7 @@ public partial class ShopImageController : ControllerBase
         using (var boxPaint = new SKPaint())
         {
             boxPaint.IsAntialias = true;
-            boxPaint.Color = SKColors.White.WithAlpha((int)(.5 * 255));
+            boxPaint.Color = SKColors.White;
             boxPaint.Style = SKPaintStyle.Fill;
             canvas.DrawRoundRect(new SKRect(0, 0, imageInfo.Width, imageInfo.Height), 100, 100, boxPaint);
         }
@@ -503,11 +500,11 @@ public partial class ShopImageController : ControllerBase
         using (var splitPaint = new SKPaint())
         {
             splitPaint.IsAntialias = true;
-            splitPaint.Color = SKColors.White.WithAlpha((int)(.3 * 255));
+            splitPaint.Color = SKColors.Black;
             splitPaint.Style = SKPaintStyle.Fill;
 
             canvas.DrawRoundRect(50 + creatorCodeTitleBounds.Width + 30,
-                (float)(imageInfo.Height - splitHeight) / 2, 15, splitHeight, 10, 10, splitPaint);
+                (float)(imageInfo.Height - 15) / 2, splitSize, splitSize, 10, 10, splitPaint);
         }
 
         return bitmap;
