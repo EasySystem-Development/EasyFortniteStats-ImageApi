@@ -60,29 +60,30 @@ public partial class ShopImageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post(Shop shop)
+    public async Task<IActionResult> Shop([FromBody] Shop shop, [FromQuery] string? locale, [FromQuery] bool? isNewShop)
     {
-        Console.WriteLine($"Item Shop image request | Locale = {shop.Locale} | New Shop = {shop.NewShop}");
+        locale ??= "en";
+        var _isNewShop = isNewShop ?? false;
+        Console.WriteLine($"Item Shop image request | Locale = {locale} | New Shop = {isNewShop}");
         // Hash the section ids
         var templateHash = string.Join('-', shop.Sections.Select(x => x.Id)).GetHashCode().ToString();
-        var isNewShop = shop.NewShop ?? false;
 
         SKBitmap? templateBitmap;
-        ShopSectionLocationData[]? shopLocationData;
+        ShopSectionLocationData[]? locationData;
 
         await _namedLock.WaitAsync("shop_template");
         try
         {
             templateBitmap = _cache.Get<SKBitmap?>($"shop_template_bmp_{templateHash}");
-            shopLocationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");
-            if (isNewShop || templateBitmap is null)
+            locationData = _cache.Get<ShopSectionLocationData[]?>($"shop_location_data_{templateHash}");
+            if (_isNewShop || templateBitmap is null)
             {
                 await PrefetchImages(shop);
                 var templateGenerationResult = await GenerateTemplate(shop);
                 templateBitmap = templateGenerationResult.Item2;
-                shopLocationData = templateGenerationResult.Item1;
+                locationData = templateGenerationResult.Item1;
                 _cache.Set($"shop_template_bmp_{templateHash}", templateBitmap, ShopImageCacheOptions);
-                _cache.Set($"shop_location_data_{templateHash}", shopLocationData, TimeSpan.FromMinutes(10));
+                _cache.Set($"shop_location_data_{templateHash}", locationData, TimeSpan.FromMinutes(10));
             }
         }
         finally
@@ -92,15 +93,15 @@ public partial class ShopImageController : ControllerBase
 
         SKBitmap? localeTemplateBitmap;
 
-        var lockName = $"shop_template_{shop.Locale}";
+        var lockName = $"shop_template_{locale}";
         await _namedLock.WaitAsync(lockName);
         try
         {
-            localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{shop.Locale}_bmp");
-            if (isNewShop || localeTemplateBitmap == null)
+            localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_template_{locale}_bmp");
+            if (_isNewShop || localeTemplateBitmap == null)
             {
-                localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, shopLocationData!);
-                _cache.Set($"shop_template_{shop.Locale}_bmp", localeTemplateBitmap, ShopImageCacheOptions);
+                localeTemplateBitmap = await GenerateLocaleTemplate(shop, templateBitmap, locationData!);
+                _cache.Set($"shop_template_{locale}_bmp", localeTemplateBitmap, ShopImageCacheOptions);
             }
         }
         finally
@@ -114,9 +115,72 @@ public partial class ShopImageController : ControllerBase
         return File(data.AsStream(true), "image/png");
     }
 
+    [HttpPost("section")]
+    public async Task<IActionResult> ShopSection([FromBody] ShopSection section, [FromQuery] string? locale,
+        [FromQuery] bool? isNewShop)
+    {
+        locale ??= "en";
+        var _isNewShop = isNewShop ?? false;
+        Console.WriteLine($"Item Shop section image request | Locale = {locale} | New Shop = {section.Id}");
+
+        SKBitmap? templateBitmap;
+        ShopSectionLocationData? shopSectionLocationData;
+
+        await _namedLock.WaitAsync($"shop_section_template_{section.Id}");
+        try
+        {
+            templateBitmap = _cache.Get<SKBitmap?>($"shop_section_template_bmp_{section.Id}");
+            shopSectionLocationData = _cache.Get<ShopSectionLocationData?>($"shop_section_location_data_{section.Id}");
+            if (_isNewShop || templateBitmap is null)
+            {
+                await PrefetchImages([section]);
+                var templateGenerationResult = await GenerateSectionTemplate(section);
+                templateBitmap = templateGenerationResult.Item2;
+                shopSectionLocationData = templateGenerationResult.Item1;
+                _cache.Set($"shop_section_template_bmp_{section.Id}", templateBitmap, ShopImageCacheOptions);
+                _cache.Set($"shop_section_location_data_{section.Id}", shopSectionLocationData,
+                    TimeSpan.FromMinutes(10));
+            }
+        }
+        finally
+        {
+            _namedLock.Release($"shop_section_template_{section.Id}");
+        }
+
+        SKBitmap? localeTemplateBitmap;
+
+        var lockName = $"shop_section_template_{locale}_{section.Id}";
+        await _namedLock.WaitAsync(lockName);
+        try
+        {
+            localeTemplateBitmap = _cache.Get<SKBitmap?>($"shop_section_template_{locale}_bmp_{section.Id}");
+            if (_isNewShop || localeTemplateBitmap == null)
+            {
+                localeTemplateBitmap =
+                    await GenerateSectionLocaleTemplate(section, templateBitmap, shopSectionLocationData!);
+                _cache.Set($"shop_section_template_{locale}_bmp_{section.Id}", localeTemplateBitmap,
+                    ShopImageCacheOptions);
+            }
+        }
+        finally
+        {
+            _namedLock.Release(lockName);
+        }
+
+        using var localeTemplateBitmapCopy = localeTemplateBitmap.Copy();
+        using var image = await GenerateShopSectionImage(section, localeTemplateBitmapCopy);
+        var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return File(data.AsStream(true), "image/png");
+    }
+
     private async Task PrefetchImages(Shop shop)
     {
-        var entries = shop.Sections.SelectMany(x => x.Entries);
+        await PrefetchImages(shop.Sections);
+    }
+
+    private async Task PrefetchImages(IEnumerable<ShopSection> sections)
+    {
+        var entries = sections.SelectMany(x => x.Entries);
         var options = new ParallelOptions
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount / 2
@@ -424,7 +488,7 @@ public partial class ShopImageController : ControllerBase
                     var nameLocationData = new ShopLocationDataEntry(sectionX + entryX + 13,
                         sectionY + entryY + itemCardBitmap.Height - 72, itemCardBitmap.Width - 2 * CARD_PADDING);
                     var priceLocationData = new ShopLocationDataEntry(sectionX + entryX + 13 + 22 + 8,
-                        sectionY + entryY + itemCardBitmap.Height - 11 - (int) ENTRY_PRICE_FONT_SIZE);
+                        sectionY + entryY + itemCardBitmap.Height - 11 - (int)ENTRY_PRICE_FONT_SIZE);
                     ShopLocationDataEntry? bannerLocationData = null;
                     if (entry.Banner != null)
                         bannerLocationData = new ShopLocationDataEntry(sectionX + entryX + 8, sectionY + entryY + 8,
@@ -676,4 +740,270 @@ public partial class ShopImageController : ControllerBase
 
     [GeneratedRegex("([a-z0-9]+|[^a-z0-9])", RegexOptions.IgnoreCase)]
     private static partial Regex NameSplitRegex();
+
+    private async Task<SKBitmap> GenerateShopSectionImage(ShopSection section, SKBitmap templateBitmap)
+    {
+        var imageInfo = new SKImageInfo(templateBitmap.Width, templateBitmap.Height);
+        var bitmap = new SKBitmap(imageInfo);
+        using var canvas = new SKCanvas(bitmap);
+
+        var backgroundBitmap = await _assets.GetBitmap("data/images/{0}", shop.BackgroundImagePath); // don't dispose
+        if (backgroundBitmap is null)
+        {
+            using var paint = new SKPaint();
+            paint.IsAntialias = true;
+            paint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint((float)imageInfo.Width / 2, 0),
+                new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
+                [new SKColor(44, 154, 234), new SKColor(14, 53, 147)],
+                [0.0f, 1.0f],
+                SKShaderTileMode.Repeat);
+
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, paint);
+        }
+        else
+        {
+            using var backgroundImagePaint = new SKPaint();
+            backgroundImagePaint.IsAntialias = true;
+            backgroundImagePaint.FilterQuality = SKFilterQuality.Medium;
+
+            using var resizedCustomBackgroundBitmap = backgroundBitmap.Resize(imageInfo, SKFilterQuality.Medium);
+            backgroundImagePaint.Shader = SKShader.CreateBitmap(resizedCustomBackgroundBitmap, SKShaderTileMode.Clamp,
+                SKShaderTileMode.Repeat);
+
+            canvas.DrawRoundRect(0, 0, imageInfo.Width, imageInfo.Height, 50, 50, backgroundImagePaint);
+        }
+
+        canvas.DrawBitmap(templateBitmap, 0, 0);
+
+        return bitmap;
+    }
+
+    private async Task<SKBitmap> GenerateLocaleTemplate(Shop shop, SKBitmap templateBitmap,
+        IEnumerable<ShopSectionLocationData> shopSectionLocationData)
+    {
+        var imageInfo = new SKImageInfo(templateBitmap.Width, templateBitmap.Height);
+        var bitmap = new SKBitmap(imageInfo);
+        using var canvas = new SKCanvas(bitmap);
+
+        canvas.DrawBitmap(templateBitmap, SKPoint.Empty);
+
+        // Drawing the shop title
+        int shopTitleWidth;
+        using (var shopTitlePaint = new SKPaint())
+        {
+            shopTitlePaint.IsAntialias = true;
+            shopTitlePaint.TextSize = TITLE_FONT_SIZE;
+            shopTitlePaint.Color = SKColors.White;
+            shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
+
+            var shopTitleTextBounds = new SKRect();
+            shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
+            shopTitleWidth = (int)shopTitleTextBounds.Width;
+
+            canvas.DrawText(shop.Title, 100, 100 - shopTitleTextBounds.Top, shopTitlePaint);
+        }
+
+        // Drawing the date
+        using (var datePaint = new SKPaint())
+        {
+            datePaint.IsAntialias = true;
+            datePaint.TextSize = DATE_FONT_SIZE;
+            datePaint.Color = SKColors.White;
+            datePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86BoldItalic.otf");
+            datePaint.TextAlign = SKTextAlign.Center;
+
+            var dateTextBounds = new SKRect();
+            datePaint.MeasureText(shop.Date, ref dateTextBounds);
+
+            var datePoint = new SKPoint(
+                Math.Max(HORIZONTAL_PADDING + shopTitleWidth / 2f, HORIZONTAL_PADDING + dateTextBounds.Width / 2),
+                313 - dateTextBounds.Top);
+            canvas.DrawText(shop.Date, datePoint, datePaint);
+        }
+
+        foreach (var sectionLocationData in shopSectionLocationData)
+        {
+            var shopSection = shop.Sections.FirstOrDefault(x => x.Id == sectionLocationData.Id);
+
+            // Draw the section name if it exists
+            if (sectionLocationData.Name != null)
+            {
+                using var sectionNamePaint = new SKPaint();
+                sectionNamePaint.IsAntialias = true;
+                sectionNamePaint.TextSize = SECTION_NAME_FONT_SIZE;
+                sectionNamePaint.Color = SKColors.White;
+                sectionNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86BoldItalic.otf");
+
+                var sectionNameTextBounds = new SKRect();
+                sectionNamePaint.MeasureText(shop.Title, ref sectionNameTextBounds);
+
+                var sectionNamePoint = new SKPoint(sectionLocationData.Name.X,
+                    sectionLocationData.Name.Y + sectionNameTextBounds.Height);
+                canvas.DrawText(shopSection?.Name, sectionNamePoint, sectionNamePaint);
+            }
+
+            foreach (var entryLocationData in sectionLocationData.Entries)
+            {
+                var shopEntry = shopSection?.Entries?.FirstOrDefault(x => x.Id == entryLocationData.Id);
+                if (shopEntry is null)
+                    continue;
+
+                // Draw the shop entry name
+                using (var entryNamePaint = new SKPaint())
+                {
+                    entryNamePaint.IsAntialias = true;
+                    entryNamePaint.TextSize = ENTRY_NAME_FONT_SIZE;
+                    entryNamePaint.Color = SKColors.White;
+                    entryNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
+
+                    var entryNameTextBounds = new SKRect();
+                    var nameLines = SplitNameText(shopEntry.Name, entryLocationData.Name.MaxWidth ?? 0, entryNamePaint);
+                    if (nameLines.Length > 1)
+                    {
+                        entryNamePaint.MeasureText(nameLines[0], ref entryNameTextBounds);
+                        canvas.DrawText(nameLines[0], entryLocationData.Name.X,
+                            entryLocationData.Name.Y + entryNameTextBounds.Height - 33, entryNamePaint);
+                    }
+
+                    entryNamePaint.MeasureText(nameLines.Last(), ref entryNameTextBounds);
+                    canvas.DrawText(nameLines.Last(), entryLocationData.Name.X,
+                        entryLocationData.Name.Y + entryNameTextBounds.Height, entryNamePaint);
+                }
+
+                // Draw the shop entry price
+                using var pricePaint = new SKPaint();
+                pricePaint.IsAntialias = true;
+                pricePaint.TextSize = ENTRY_PRICE_FONT_SIZE;
+                pricePaint.Color = SKColors.White;
+                pricePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
+
+                var priceTextBounds = new SKRect();
+
+                var priceValue = shopEntry.FinalPrice;
+                pricePaint.MeasureText(priceValue, ref priceTextBounds);
+                var pricePoint = new SKPoint(entryLocationData.Price.X,
+                    entryLocationData.Price.Y - priceTextBounds.Top);
+                canvas.DrawText(priceValue, pricePoint, pricePaint);
+
+                // Draw strikeout old price if item is discounted
+                if (shopEntry.FinalPrice != shopEntry.RegularPrice)
+                {
+                    using var oldPricePaint = new SKPaint();
+                    oldPricePaint.IsAntialias = true;
+                    oldPricePaint.TextSize = ENTRY_PRICE_FONT_SIZE;
+                    oldPricePaint.Color = SKColors.White.WithAlpha((int)(.6 * 255));
+                    oldPricePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
+
+                    var oldPriceTextBounds = new SKRect();
+
+                    var oldPriceValue = shopEntry.RegularPrice;
+                    oldPricePaint.MeasureText(oldPriceValue, ref oldPriceTextBounds);
+                    var oldPricePoint = new SKPoint(entryLocationData.Price.X + oldPriceTextBounds.Width + 9,
+                        entryLocationData.Price.Y - priceTextBounds.Top);
+                    canvas.DrawText(oldPriceValue, oldPricePoint, oldPricePaint);
+
+                    // Draw the strikeout line
+                    using var strikePaint = new SKPaint();
+                    strikePaint.IsAntialias = true;
+                    strikePaint.StrokeWidth = 2f;
+                    strikePaint.Color = SKColors.White.WithAlpha((int)(.6 * 255));
+
+                    var strikeStart = new SKPoint(oldPricePoint.X - 4, oldPricePoint.Y - 9);
+                    var strikeEnd = new SKPoint(oldPricePoint.X + oldPriceTextBounds.Width + 2, oldPricePoint.Y - 6);
+                    canvas.DrawLine(strikeStart, strikeEnd, strikePaint);
+                }
+
+                if (shopEntry.Banner != null)
+                {
+                    using var bannerBitmap = await GenerateBanner(shopEntry.Banner.Text, shopEntry.Banner.Colors,
+                        (int)entryLocationData.Banner!.MaxWidth!);
+                    canvas.DrawBitmap(bannerBitmap, entryLocationData.Banner!.X, entryLocationData.Banner.Y);
+                }
+            }
+        }
+
+        return bitmap;
+    }
+
+    private async Task<(ShopSectionLocationData, SKBitmap)> GenerateSectionTemplate(ShopSection section)
+    {
+        var columnCount = 2;
+        var bestAspectRatioDiff = float.MaxValue;
+        int width = 0, height = 0, sectionsPerColumn = 0;
+        for (var curColumnCount = columnCount; curColumnCount <= 15; curColumnCount++)
+        {
+            var curWidth = HORIZONTAL_PADDING * 2 + curColumnCount * SECTION_WIDTH +
+                           (curColumnCount - 1) * COLUMN_SPACE;
+            var curSectionsPerColumn = (int)Math.Ceiling((double)shop.Sections.Length / curColumnCount);
+            var curHeight = HEADER_HEIGHT + curSectionsPerColumn * SECTION_HEIGHT +
+                            (curSectionsPerColumn - 1) * CARD_SPACE + BOTTOM_PADDING;
+
+            // The goal is reaching a 1:1 aspect ratio
+            var aspectRatio = (float)curWidth / curHeight;
+            var aspectRatioDiff = Math.Abs(aspectRatio - 1);
+            if (aspectRatioDiff >= bestAspectRatioDiff) break;
+
+            width = curWidth;
+            height = curHeight;
+            sectionsPerColumn = curSectionsPerColumn;
+            bestAspectRatioDiff = aspectRatioDiff;
+            columnCount = curColumnCount;
+        }
+
+        var imageInfo = new SKImageInfo(width, height);
+        var bitmap = new SKBitmap(imageInfo);
+        using var canvas = new SKCanvas(bitmap);
+
+        var shopLocationData = new ShopSectionLocationData[shop.Sections.Length];
+        var section = sections[j];
+        var sectionImageInfo = new SKImageInfo(SECTION_WIDTH, SECTION_HEIGHT);
+        using var sectionBitmap = new SKBitmap(sectionImageInfo);
+        using var sectionCanvas = new SKCanvas(sectionBitmap);
+
+        var sectionX = HORIZONTAL_PADDING + i * SECTION_WIDTH + i * COLUMN_SPACE;
+        var sectionY = HEADER_HEIGHT + j * SECTION_HEIGHT + j * CARD_SPACE;
+
+        var position = 0f;
+        var shopEntryData = new List<ShopEntryLocationData>();
+        foreach (var entry in section.Entries)
+        {
+            // If the next card is full height, we can't fit it in the current column
+            if (!MathF.Floor(position).Equals(position) && entry.Size >= 1) position = MathF.Ceiling(position);
+            var entryX = (int)position * CARD_WIDTH + (int)position * CARD_SPACE;
+            var entryY = SECTION_HEIGHT - CARD_HEIGHT +
+                         (MathF.Floor(position).Equals(position) ? 0 : (CARD_HEIGHT + CARD_SPACE) / 2);
+            position += entry.Size;
+
+            using var itemCardBitmap = await GenerateItemCard(entry);
+            using var itemCardPaint = new SKPaint();
+            itemCardPaint.IsAntialias = true;
+            itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap, SKShaderTileMode.Clamp,
+                SKShaderTileMode.Clamp, SKMatrix.CreateTranslation(entryX, entryY));
+            sectionCanvas.DrawRoundRect(entryX, entryY, itemCardBitmap.Width, itemCardBitmap.Height, 20, 20,
+                itemCardPaint);
+
+            var nameLocationData = new ShopLocationDataEntry(sectionX + entryX + 13,
+                sectionY + entryY + itemCardBitmap.Height - 72, itemCardBitmap.Width - 2 * CARD_PADDING);
+            var priceLocationData = new ShopLocationDataEntry(sectionX + entryX + 13 + 22 + 8,
+                sectionY + entryY + itemCardBitmap.Height - 11 - (int)ENTRY_PRICE_FONT_SIZE);
+            ShopLocationDataEntry? bannerLocationData = null;
+            if (entry.Banner != null)
+                bannerLocationData = new ShopLocationDataEntry(sectionX + entryX + 8, sectionY + entryY + 8,
+                    itemCardBitmap.Width - 2 * 8);
+            shopEntryData.Add(new ShopEntryLocationData(entry.Id, nameLocationData, priceLocationData,
+                bannerLocationData));
+        }
+
+
+        ShopLocationDataEntry? sectionNameLocationData = null;
+        if (section.Name != null)
+            sectionNameLocationData = new ShopLocationDataEntry(sectionX, sectionY);
+        shopLocationData[iSec] =
+            new ShopSectionLocationData(section.Id, sectionNameLocationData, shopEntryData.ToArray());
+
+        canvas.DrawBitmap(sectionBitmap, new SKPoint(sectionX, sectionY));
+
+        return (shopLocationData, bitmap);
+    }
 }
