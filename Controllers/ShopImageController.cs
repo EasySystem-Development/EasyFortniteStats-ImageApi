@@ -255,21 +255,21 @@ public partial class ShopImageController : ControllerBase
 
         if (shop.CreatorCode != null)
         {
-            var fortniteFont = await _assets.GetFont("Assets/Fonts/Fortnite.ttf"); // don't dispose
             using var shopTitlePaint = new SKPaint();
             shopTitlePaint.TextSize = TITLE_FONT_SIZE;
-            shopTitlePaint.Typeface = fortniteFont;
-            var shopTitleTextBounds = new SKRect();
-            shopTitlePaint.MeasureText(shop.Title, ref shopTitleTextBounds);
+            shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
 
-            var maxBoxWidth = imageInfo.Width - 100 - shopTitleTextBounds.Width - 100 - 100;
+            var shopTitleWidth = shopTitlePaint.MeasureText(shop.Title);
+
+
+            var maxBoxWidth = imageInfo.Width - 3 * HORIZONTAL_PADDING - shopTitleWidth;
             using var creatorCodeBoxBitmap =
                 await GenerateCreatorCodeBox(shop.CreatorCodeTitle, shop.CreatorCode, maxBoxWidth);
             canvas.DrawBitmap(creatorCodeBoxBitmap, imageInfo.Width - 100 - creatorCodeBoxBitmap.Width, 100);
 
             var adBannerBitmap = await _assets.GetBitmap("Assets/Images/Shop/ad_banner.png"); // don't dispose
             canvas.DrawBitmap(adBannerBitmap, imageInfo.Width - 100 - 50 - adBannerBitmap!.Width,
-                100 - adBannerBitmap.Height / 2);
+                100 - adBannerBitmap.Height / 2f);
         }
 
         return bitmap;
@@ -285,7 +285,7 @@ public partial class ShopImageController : ControllerBase
         canvas.DrawBitmap(templateBitmap, SKPoint.Empty);
 
         // Drawing the shop title
-        int shopTitleWidth;
+        float shopTitleWidth;
         using (var shopTitlePaint = new SKPaint())
         {
             shopTitlePaint.IsAntialias = true;
@@ -293,10 +293,7 @@ public partial class ShopImageController : ControllerBase
             shopTitlePaint.Color = SKColors.White;
             shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
 
-            var shopTitleTextBounds = new SKRect();
-
-            shopTitleWidth = (int)shopTitlePaint.MeasureText(shop.Title);
-            Console.WriteLine(shopTitleWidth);
+            shopTitleWidth = shopTitlePaint.MeasureText(shop.Title);
 
             canvas.DrawText(shop.Title, 100, 50 - shopTitlePaint.FontMetrics.Ascent, shopTitlePaint);
         }
@@ -502,39 +499,32 @@ public partial class ShopImageController : ControllerBase
 
     private async Task<SKBitmap> GenerateCreatorCodeBox(string creatorCodeTitle, string creatorCode, float maxWidth)
     {
-        creatorCodeTitle += " · ";
+        creatorCodeTitle = $" {creatorCodeTitle} · ";
+        creatorCode = $"{creatorCode} ";
 
         using var creatorCodeTitlePaint = new SKPaint();
         creatorCodeTitlePaint.IsAntialias = true;
-        creatorCodeTitlePaint.TextSize = 100.0f;
-        creatorCodeTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
+        creatorCodeTitlePaint.TextSize = 100f;
+        creatorCodeTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_76Bold.otf");
         creatorCodeTitlePaint.Color = SKColors.Black;
-
-        var creatorCodeTitleBounds = new SKRect();
-        creatorCodeTitlePaint.MeasureText(creatorCodeTitle, ref creatorCodeTitleBounds);
 
         using var creatorCodePaint = new SKPaint();
         creatorCodePaint.IsAntialias = true;
-        creatorCodePaint.TextSize = 130.0f;
-        creatorCodePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
+        creatorCodePaint.TextSize = 100f;
+        creatorCodePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_76Bold.otf");
         creatorCodePaint.Color = new SKColor(178, 165, 255);
         creatorCodePaint.TextAlign = SKTextAlign.Right;
 
-        var creatorCodeBounds = new SKRect();
-        creatorCodeTitlePaint.MeasureText(creatorCode, ref creatorCodeBounds);
-
-        int height = 200, splitSize = 20;
-        while (50 + creatorCodeTitleBounds.Width + 30 + splitSize + 30 + creatorCodeBounds.Width + 50 > maxWidth)
+        float width = creatorCodeTitlePaint.MeasureText(creatorCodeTitle) + creatorCodeTitlePaint.MeasureText(creatorCode), height = 150f;
+        while (width > maxWidth)
         {
             creatorCodeTitlePaint.TextSize--;
-            creatorCodeTitlePaint.MeasureText(creatorCodeTitle, ref creatorCodeTitleBounds);
             creatorCodePaint.TextSize--;
-            creatorCodePaint.MeasureText(creatorCode, ref creatorCodeBounds);
+            width = creatorCodeTitlePaint.MeasureText(creatorCodeTitle) + creatorCodePaint.MeasureText(creatorCode);
             height--;
         }
 
-        var imageInfo = new SKImageInfo(
-            50 + (int)creatorCodeTitleBounds.Width + 30 + 15 + 30 + (int)creatorCodeBounds.Width + 50, height);
+        var imageInfo = new SKImageInfo((int) width, (int) height);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
@@ -546,10 +536,10 @@ public partial class ShopImageController : ControllerBase
             canvas.DrawRoundRect(new SKRect(0, 0, imageInfo.Width, imageInfo.Height), 100, 100, boxPaint);
         }
 
-        canvas.DrawText(creatorCodeTitle, 50, (float)imageInfo.Height / 2 - creatorCodeTitleBounds.MidY,
-            creatorCodeTitlePaint);
-        canvas.DrawText(creatorCode, imageInfo.Width - 50, (float)imageInfo.Height / 2 - creatorCodeBounds.MidY,
-            creatorCodePaint);
+        var y = (imageInfo.Height - creatorCodePaint.FontSpacing) / 2 - creatorCodePaint.FontMetrics.Ascent;
+
+        canvas.DrawText(creatorCodeTitle, 0, y, creatorCodeTitlePaint);
+        canvas.DrawText(creatorCode, imageInfo.Width, y, creatorCodePaint);
 
         return bitmap;
     }
@@ -664,9 +654,6 @@ public partial class ShopImageController : ControllerBase
             paint.Color = SKColors.White;
             paint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_74Regular.otf");
             paint.TextAlign = SKTextAlign.Right;
-
-            var textBounds = new SKRect();
-            paint.MeasureText("+", ref textBounds);
 
             canvas.DrawText("+", imageInfo.Width - 18, imageInfo.Height - paint.FontMetrics.Descent + 3, paint);
         }
