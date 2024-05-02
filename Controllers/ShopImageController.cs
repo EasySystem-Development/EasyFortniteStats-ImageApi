@@ -257,7 +257,7 @@ public partial class ShopImageController : ControllerBase
         {
             using var shopTitlePaint = new SKPaint();
             shopTitlePaint.TextSize = TITLE_FONT_SIZE;
-            shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
+            shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_86Bold.otf");
 
             var shopTitleWidth = shopTitlePaint.MeasureText(shop.Title);
 
@@ -291,7 +291,7 @@ public partial class ShopImageController : ControllerBase
             shopTitlePaint.IsAntialias = true;
             shopTitlePaint.TextSize = TITLE_FONT_SIZE;
             shopTitlePaint.Color = SKColors.White;
-            shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86Bold.otf");
+            shopTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_86Bold.otf");
 
             shopTitleWidth = shopTitlePaint.MeasureText(shop.Title);
 
@@ -304,7 +304,7 @@ public partial class ShopImageController : ControllerBase
             datePaint.IsAntialias = true;
             datePaint.TextSize = DATE_FONT_SIZE;
             datePaint.Color = SKColors.White;
-            datePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86BoldItalic.otf");
+            datePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_86BoldItalic.otf");
             datePaint.TextAlign = SKTextAlign.Center;
 
             var datePoint = new SKPoint(
@@ -324,7 +324,7 @@ public partial class ShopImageController : ControllerBase
                 sectionNamePaint.IsAntialias = true;
                 sectionNamePaint.TextSize = SECTION_NAME_FONT_SIZE;
                 sectionNamePaint.Color = SKColors.White;
-                sectionNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_86BoldItalic.otf");
+                sectionNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_86BoldItalic.otf");
 
                 var sectionNamePoint = new SKPoint(sectionLocationData.Name.X,
                     sectionLocationData.Name.Y - sectionNamePaint.FontMetrics.Ascent);
@@ -343,7 +343,7 @@ public partial class ShopImageController : ControllerBase
                     entryNamePaint.IsAntialias = true;
                     entryNamePaint.TextSize = ENTRY_NAME_FONT_SIZE;
                     entryNamePaint.Color = SKColors.White;
-                    entryNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
+                    entryNamePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_75Medium.otf");
 
                     var entryNameTextBounds = new SKRect();
                     var nameLines = SplitNameText(shopEntry.Name, entryLocationData.Name.MaxWidth ?? 0, entryNamePaint);
@@ -364,7 +364,7 @@ public partial class ShopImageController : ControllerBase
                 pricePaint.IsAntialias = true;
                 pricePaint.TextSize = ENTRY_PRICE_FONT_SIZE;
                 pricePaint.Color = SKColors.White;
-                pricePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
+                pricePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_75Medium.otf");
 
                 var priceTextWidth = pricePaint.MeasureText(shopEntry.FinalPrice);
                 var pricePoint = new SKPoint(entryLocationData.Price.X,
@@ -378,7 +378,7 @@ public partial class ShopImageController : ControllerBase
                     oldPricePaint.IsAntialias = true;
                     oldPricePaint.TextSize = ENTRY_PRICE_FONT_SIZE;
                     oldPricePaint.Color = SKColors.White.WithAlpha((int)(.6 * 255));
-                    oldPricePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_75Medium.otf");
+                    oldPricePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_75Medium.otf");
 
                     var oldPriceTextWidth = oldPricePaint.MeasureText(shopEntry.RegularPrice);
                     var oldPricePoint = new SKPoint(entryLocationData.Price.X + priceTextWidth + 9,
@@ -505,13 +505,13 @@ public partial class ShopImageController : ControllerBase
         using var creatorCodeTitlePaint = new SKPaint();
         creatorCodeTitlePaint.IsAntialias = true;
         creatorCodeTitlePaint.TextSize = 100f;
-        creatorCodeTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_76Bold.otf");
+        creatorCodeTitlePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_76Bold.otf");
         creatorCodeTitlePaint.Color = SKColors.Black;
 
         using var creatorCodePaint = new SKPaint();
         creatorCodePaint.IsAntialias = true;
         creatorCodePaint.TextSize = 100f;
-        creatorCodePaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_76Bold.otf");
+        creatorCodePaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_76Bold.otf");
         creatorCodePaint.Color = new SKColor(178, 165, 255);
         creatorCodePaint.TextAlign = SKTextAlign.Right;
 
@@ -549,7 +549,7 @@ public partial class ShopImageController : ControllerBase
         using var bannerPaint = new SKPaint();
         bannerPaint.IsAntialias = true;
         bannerPaint.TextSize = 17.0f;
-        bannerPaint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_76BoldItalic.otf");
+        bannerPaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_76BoldItalic.otf");
         bannerPaint.Color = SKColor.Parse(colors[1]);
 
         var textBounds = new SKRect();
@@ -652,7 +652,7 @@ public partial class ShopImageController : ControllerBase
             paint.IsAntialias = true;
             paint.TextSize = 35.0f;
             paint.Color = SKColors.White;
-            paint.Typeface = await _assets.GetFont("Assets/Fonts/HeadingNow_74Regular.otf");
+            paint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite_74Regular.otf");
             paint.TextAlign = SKTextAlign.Right;
 
             canvas.DrawText("+", imageInfo.Width - 18, imageInfo.Height - paint.FontMetrics.Descent + 3, paint);
