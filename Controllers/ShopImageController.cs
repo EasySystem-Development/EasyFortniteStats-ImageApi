@@ -308,7 +308,8 @@ public partial class ShopImageController : ControllerBase
             datePaint.TextAlign = SKTextAlign.Center;
 
             var datePoint = new SKPoint(
-                Math.Max(HORIZONTAL_PADDING + shopTitleWidth / 2f, HORIZONTAL_PADDING + datePaint.MeasureText(shop.Date) / 2),
+                Math.Max(HORIZONTAL_PADDING + shopTitleWidth / 2f,
+                    HORIZONTAL_PADDING + datePaint.MeasureText(shop.Date) / 2),
                 313 - datePaint.FontMetrics.Ascent);
             canvas.DrawText(shop.Date, datePoint, datePaint);
         }
@@ -515,7 +516,9 @@ public partial class ShopImageController : ControllerBase
         creatorCodePaint.Color = new SKColor(178, 165, 255);
         creatorCodePaint.TextAlign = SKTextAlign.Right;
 
-        float width = creatorCodeTitlePaint.MeasureText(creatorCodeTitle) + creatorCodeTitlePaint.MeasureText(creatorCode), height = 150f;
+        float width =
+                creatorCodeTitlePaint.MeasureText(creatorCodeTitle) + creatorCodeTitlePaint.MeasureText(creatorCode),
+            height = 150f;
         while (width > maxWidth)
         {
             creatorCodeTitlePaint.TextSize--;
@@ -524,7 +527,7 @@ public partial class ShopImageController : ControllerBase
             height--;
         }
 
-        var imageInfo = new SKImageInfo((int) width, (int) height);
+        var imageInfo = new SKImageInfo((int)width, (int)height);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
