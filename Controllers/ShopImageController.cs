@@ -21,6 +21,7 @@ public partial class ShopImageController : ControllerBase
     private const int HORIZONTAL_PADDING = 100;
     private const int BOTTOM_PADDING = 100;
     private const int HEADER_HEIGHT = 450;
+    private const int SECTION_HEADER_HEIGHT = 200;
     private const int COLUMN_SPACE = 100;
     private const int CARDS_PER_SECTION = 5;
     private const int CARD_WIDTH = 220;
@@ -308,7 +309,8 @@ public partial class ShopImageController : ControllerBase
             datePaint.TextAlign = SKTextAlign.Center;
 
             var datePoint = new SKPoint(
-                Math.Max(HORIZONTAL_PADDING + shopTitleWidth / 2f, HORIZONTAL_PADDING + datePaint.MeasureText(shop.Date) / 2),
+                Math.Max(HORIZONTAL_PADDING + shopTitleWidth / 2f,
+                    HORIZONTAL_PADDING + datePaint.MeasureText(shop.Date) / 2),
                 313 - datePaint.FontMetrics.Ascent);
             canvas.DrawText(shop.Date, datePoint, datePaint);
         }
@@ -433,8 +435,7 @@ public partial class ShopImageController : ControllerBase
             columnCount = curColumnCount;
         }
 
-        var imageInfo = new SKImageInfo(width, height);
-        var bitmap = new SKBitmap(imageInfo);
+        var bitmap = new SKBitmap(new SKImageInfo(width, height));
         using var canvas = new SKCanvas(bitmap);
 
         var shopLocationData = new ShopSectionLocationData[shop.Sections.Length];
@@ -445,8 +446,7 @@ public partial class ShopImageController : ControllerBase
             for (var j = 0; j < sections.Count; j++)
             {
                 var section = sections[j];
-                var sectionImageInfo = new SKImageInfo(SECTION_WIDTH, SECTION_HEIGHT);
-                using var sectionBitmap = new SKBitmap(sectionImageInfo);
+                using var sectionBitmap = new SKBitmap(new SKImageInfo(SECTION_WIDTH, SECTION_HEIGHT));
                 using var sectionCanvas = new SKCanvas(sectionBitmap);
 
                 var sectionX = HORIZONTAL_PADDING + i * SECTION_WIDTH + i * COLUMN_SPACE;
@@ -515,7 +515,9 @@ public partial class ShopImageController : ControllerBase
         creatorCodePaint.Color = new SKColor(178, 165, 255);
         creatorCodePaint.TextAlign = SKTextAlign.Right;
 
-        float width = creatorCodeTitlePaint.MeasureText(creatorCodeTitle) + creatorCodeTitlePaint.MeasureText(creatorCode), height = 150f;
+        float width =
+                creatorCodeTitlePaint.MeasureText(creatorCodeTitle) + creatorCodeTitlePaint.MeasureText(creatorCode),
+            height = 150f;
         while (width > maxWidth)
         {
             creatorCodeTitlePaint.TextSize--;
@@ -524,7 +526,7 @@ public partial class ShopImageController : ControllerBase
             height--;
         }
 
-        var imageInfo = new SKImageInfo((int) width, (int) height);
+        var imageInfo = new SKImageInfo((int)width, (int)height);
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
@@ -718,8 +720,118 @@ public partial class ShopImageController : ControllerBase
         return null;
     }
 
-    private async Task<(ShopSectionLocationData, SKBitmap)> GenerateSectionTemplate(ShopSection section)
+    private async Task<(ShopSectionLocationData, SKBitmap)> GenerateSectionTemplate(ShopSection shopSection)
     {
-        return (null, null);
+        List<ShopSection> sections = [];
+        List<ShopEntry> currentEntries = [];
+        var currentWidth = 0f;
+        foreach (var entry in shopSection.Entries)
+        {
+            if (entry.Size + currentWidth > CARDS_PER_SECTION)
+            {
+                sections.Add(new ShopSection
+                {
+                    Id = shopSection.Id + sections.Count,
+                    Name = null,
+                    Entries = currentEntries.ToArray(),
+                });
+                currentEntries.Clear();
+                currentWidth = 0;
+            }
+
+            currentEntries.Add(entry);
+            currentWidth += entry.Size;
+        }
+
+        sections.Add(new ShopSection
+        {
+            Id = shopSection.Id + sections.Count,
+            Name = null,
+            Entries = currentEntries.ToArray(),
+        });
+
+        var columnCount = 1;
+        var bestAspectRatioDiff = float.MaxValue;
+        int width = 0, height = 0, sectionsPerColumn = 0;
+        for (var curColumnCount = columnCount; curColumnCount <= 15; curColumnCount++)
+        {
+            var curWidth = HORIZONTAL_PADDING + curColumnCount * SECTION_WIDTH +
+                           (curColumnCount - 1) * (COLUMN_SPACE / 2);
+            var curSectionsPerColumn = (int)Math.Ceiling((double)sections.Count / curColumnCount);
+            var curHeight = SECTION_HEADER_HEIGHT + curSectionsPerColumn * CARD_HEIGHT +
+                            (curSectionsPerColumn - 1) * CARD_SPACE + BOTTOM_PADDING;
+
+            // The goal is reaching a 1:1 aspect ratio
+            var aspectRatio = (float)curWidth / curHeight;
+            var aspectRatioDiff = Math.Abs(aspectRatio - 1);
+            if (aspectRatioDiff >= bestAspectRatioDiff) break;
+
+            width = curWidth;
+            height = curHeight;
+            sectionsPerColumn = curSectionsPerColumn;
+            bestAspectRatioDiff = aspectRatioDiff;
+            columnCount = curColumnCount;
+        }
+
+        var bitmap = new SKBitmap(new SKImageInfo(width, height));
+        using var canvas = new SKCanvas(bitmap);
+
+        var shopLocationData = new ShopSectionLocationData[sections.Count];
+        var iSec = 0;
+        for (var i = 0; i < columnCount; i++)
+        {
+            var columnSections = sections.Skip(i * sectionsPerColumn).Take(sectionsPerColumn).ToList();
+            for (var j = 0; j < sections.Count; j++)
+            {
+                var section = columnSections[j];
+                using var sectionBitmap = new SKBitmap(new SKImageInfo(SECTION_WIDTH, SECTION_HEIGHT));
+                using var sectionCanvas = new SKCanvas(sectionBitmap);
+
+                var sectionX = HORIZONTAL_PADDING / 2 + i * SECTION_WIDTH + i * COLUMN_SPACE;
+                var sectionY = SECTION_HEADER_HEIGHT + j * SECTION_HEIGHT + j * CARD_SPACE;
+
+                var position = 0f;
+                var shopEntryData = new List<ShopEntryLocationData>();
+                foreach (var entry in section.Entries)
+                {
+                    // If the next card is full height, we can't fit it in the current column
+                    if (!MathF.Floor(position).Equals(position) && entry.Size >= 1) position = MathF.Ceiling(position);
+                    var entryX = (int)position * CARD_WIDTH + (int)position * CARD_SPACE;
+                    var entryY = SECTION_HEIGHT - CARD_HEIGHT +
+                                 (MathF.Floor(position).Equals(position) ? 0 : (CARD_HEIGHT + CARD_SPACE) / 2);
+                    position += entry.Size;
+
+                    using var itemCardBitmap = await GenerateItemCard(entry);
+                    using var itemCardPaint = new SKPaint();
+                    itemCardPaint.IsAntialias = true;
+                    itemCardPaint.Shader = SKShader.CreateBitmap(itemCardBitmap, SKShaderTileMode.Clamp,
+                        SKShaderTileMode.Clamp, SKMatrix.CreateTranslation(entryX, entryY));
+                    sectionCanvas.DrawRoundRect(entryX, entryY, itemCardBitmap.Width, itemCardBitmap.Height, 20, 20,
+                        itemCardPaint);
+
+                    var nameLocationData = new ShopLocationDataEntry(sectionX + entryX + 13,
+                        sectionY + entryY + itemCardBitmap.Height - 72, itemCardBitmap.Width - 2 * CARD_PADDING);
+                    var priceLocationData = new ShopLocationDataEntry(sectionX + entryX + 13 + 22 + 8,
+                        sectionY + entryY + itemCardBitmap.Height - 8);
+                    ShopLocationDataEntry? bannerLocationData = null;
+                    if (entry.Banner != null)
+                        bannerLocationData = new ShopLocationDataEntry(sectionX + entryX + 8, sectionY + entryY + 8,
+                            itemCardBitmap.Width - 2 * 8);
+                    shopEntryData.Add(new ShopEntryLocationData(entry.Id, nameLocationData, priceLocationData,
+                        bannerLocationData));
+                }
+
+                ShopLocationDataEntry? sectionNameLocationData = null;
+                if (section.Name != null)
+                    sectionNameLocationData = new ShopLocationDataEntry(sectionX, sectionY);
+                shopLocationData[iSec] =
+                    new ShopSectionLocationData(section.Id, sectionNameLocationData, shopEntryData.ToArray());
+
+                canvas.DrawBitmap(sectionBitmap, new SKPoint(sectionX, sectionY));
+                iSec++;
+            }
+        }
+
+        return (shopLocationData, bitmap);
     }
 }
