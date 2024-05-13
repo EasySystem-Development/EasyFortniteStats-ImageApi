@@ -10,7 +10,14 @@ public class Shop
     public string CreatorCodeTitle { get; set; }
     public string? CreatorCode { get; set; }
     public string? BackgroundImagePath { get; set; }
-    public ShopSection[] Sections { get; set; } 
+    public ShopSection[] Sections { get; set; }
+}
+
+public class ShopLayout
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public ShopSection[] Sections { get; set; }
 }
 
 public class ShopSection
@@ -50,22 +57,23 @@ public class ShopSectionLocationData
         Name = name;
         Entries = entries;
     }
-    
+
     public string Id { get; }
     public ShopLocationDataEntry? Name { get; }
     public ShopEntryLocationData[] Entries { get; }
-} 
+}
 
 public class ShopEntryLocationData
 {
-    public ShopEntryLocationData(string id, ShopLocationDataEntry name, ShopLocationDataEntry price, ShopLocationDataEntry? banner)
+    public ShopEntryLocationData(string id, ShopLocationDataEntry name, ShopLocationDataEntry price,
+        ShopLocationDataEntry? banner)
     {
         Id = id;
         Name = name;
         Price = price;
         Banner = banner;
     }
-    
+
     public string Id { get; }
     public ShopLocationDataEntry Name { get; }
     public ShopLocationDataEntry Price { get; }
@@ -79,14 +87,14 @@ public class ShopLocationDataEntry
         X = x;
         Y = y;
     }
-    
+
     public ShopLocationDataEntry(int x, int y, int maxWidth)
     {
         X = x;
         Y = y;
         MaxWidth = maxWidth;
     }
-    
+
     public int X { get; }
     public int Y { get; }
     public int? MaxWidth { get; }
