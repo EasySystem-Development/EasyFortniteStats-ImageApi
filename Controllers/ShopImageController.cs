@@ -415,8 +415,7 @@ public partial class ShopImageController : ControllerBase
             columnCount = curColumnCount;
         }
 
-        var imageInfo = new SKImageInfo(width, height);
-        var bitmap = new SKBitmap(imageInfo);
+        var bitmap = new SKBitmap(new SKImageInfo(width, height));
         using var canvas = new SKCanvas(bitmap);
 
         var shopLocationData = new ShopSectionLocationData[shop.Sections.Length];
@@ -427,8 +426,7 @@ public partial class ShopImageController : ControllerBase
             for (var j = 0; j < sections.Count; j++)
             {
                 var section = sections[j];
-                var sectionImageInfo = new SKImageInfo(SECTION_WIDTH, SECTION_HEIGHT);
-                using var sectionBitmap = new SKBitmap(sectionImageInfo);
+                using var sectionBitmap = new SKBitmap(new SKImageInfo(SECTION_WIDTH, SECTION_HEIGHT));
                 using var sectionCanvas = new SKCanvas(sectionBitmap);
 
                 var sectionX = HORIZONTAL_PADDING + i * SECTION_WIDTH + i * COLUMN_SPACE;
