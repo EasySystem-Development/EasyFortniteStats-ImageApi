@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="AsyncKeyedLock" Version="6.4.2" />
         <PackageReference Include="SkiaSharp" Version="2.88.8" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.8" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />

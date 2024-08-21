@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using AsyncKeyedLock;
 using EasyFortniteStats_ImageApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using SkiaSharp;
@@ -11,9 +12,9 @@ namespace EasyFortniteStats_ImageApi.Controllers;
 public class AccountImageController : ControllerBase
 {
     private readonly IHttpClientFactory _clientFactory;
-    private readonly NamedLock _namedLock;
+    private readonly AsyncKeyedLocker<string> _namedLock;
     private readonly SharedAssets _assets;
-    
+
     private const string BASE_ITEM_IMAGE_PATH = "data/images/locker/items";
 
     private static readonly IReadOnlyList<(int Count, int Quality)> QualityMapping = new List<(int, int)>
@@ -25,7 +26,7 @@ public class AccountImageController : ControllerBase
         (0, 100),
     };
 
-    public AccountImageController(IHttpClientFactory clientFactory, NamedLock namedLock,
+    public AccountImageController(IHttpClientFactory clientFactory, AsyncKeyedLocker<string> namedLock,
         SharedAssets assets)
     {
         _clientFactory = clientFactory;
@@ -39,14 +40,9 @@ public class AccountImageController : ControllerBase
         Console.WriteLine(
             $"Locker image request | Name = {locker.PlayerName} | Locale = {locker.Locale} | Items = {locker.Items.Length}");
         var lockKey = $"locker_{locker.RequestId}";
-        await _namedLock.WaitAsync(lockKey);
-        try
+        using (await _namedLock.LockAsync(lockKey).ConfigureAwait(false))
         {
             await GenerateItemCards(locker);
-        }
-        finally
-        {
-            _namedLock.Release(lockKey);
         }
 
         using var lockerBitmap = await GenerateImage(locker);
@@ -61,14 +57,14 @@ public class AccountImageController : ControllerBase
         // Calculate rows and columns based on locker.Items count
         // Columns and Rows should be equal
         // min value is 5
-        var columns = Math.Max((int) Math.Ceiling(Math.Sqrt(locker.Items.Length)), 5);
+        var columns = Math.Max((int)Math.Ceiling(Math.Sqrt(locker.Items.Length)), 5);
         var rows = locker.Items.Length / columns + (locker.Items.Length % columns == 0 ? 0 : 1);
 
-        var uiResizingFactor = (float) (1 + rows * 0.15);
+        var uiResizingFactor = (float)(1 + rows * 0.15);
 
-        var nameFontSize = (int) (64 * uiResizingFactor);
+        var nameFontSize = (int)(64 * uiResizingFactor);
 
-        var footerSpace = (int) (80 * uiResizingFactor);
+        var footerSpace = (int)(80 * uiResizingFactor);
         var imageInfo = new SKImageInfo(
             50 + 256 * columns + 25 * (columns - 1) + 50,
             50 + nameFontSize + 50 + rows * 313 + (rows - 1) * 25 + footerSpace);
@@ -78,8 +74,8 @@ public class AccountImageController : ControllerBase
         using var backgroundPaint = new SKPaint();
         backgroundPaint.IsAntialias = true;
         backgroundPaint.Shader = SKShader.CreateLinearGradient(
-            new SKPoint((float) imageInfo.Width / 2, 0),
-            new SKPoint((float) imageInfo.Width / 2, imageInfo.Height),
+            new SKPoint((float)imageInfo.Width / 2, 0),
+            new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
             [new SKColor(44, 154, 234), new SKColor(14, 53, 147)],
             [0.0f, 1.0f],
             SKShaderTileMode.Repeat);
@@ -90,7 +86,7 @@ public class AccountImageController : ControllerBase
         var segoeFont = await _assets.GetFont("Assets/Fonts/Segoe.ttf"); // don't dispose
 
         var icon = await _assets.GetBitmap("Assets/Images/Locker/Icon.png"); // don't dispose
-        var resize = (int) (50 * uiResizingFactor);
+        var resize = (int)(50 * uiResizingFactor);
         using var resizeIcon = icon!.Resize(new SKImageInfo(resize, resize), SKFilterQuality.High);
         canvas.DrawBitmap(resizeIcon, 50, 50);
 
@@ -242,7 +238,7 @@ public class AccountImageController : ControllerBase
 
         var entryNameTextBounds = new SKRect();
         namePaint.MeasureText(lockerItem.Name, ref entryNameTextBounds);
-        canvas.DrawText(lockerItem.Name, (float) bitmap.Width / 2, bitmap.Height - 59 + entryNameTextBounds.Height,
+        canvas.DrawText(lockerItem.Name, (float)bitmap.Width / 2, bitmap.Height - 59 + entryNameTextBounds.Height,
             namePaint);
 
         using var descriptionPaint = new SKPaint();
@@ -253,7 +249,7 @@ public class AccountImageController : ControllerBase
         descriptionPaint.TextAlign = SKTextAlign.Center;
 
         descriptionPaint.MeasureText(lockerItem.Description, ref entryNameTextBounds);
-        canvas.DrawText(lockerItem.Description, (float) bitmap.Width / 2,
+        canvas.DrawText(lockerItem.Description, (float)bitmap.Width / 2,
             bitmap.Height - 42 + entryNameTextBounds.Height, descriptionPaint);
 
         using var sourcePaint = new SKPaint();
@@ -288,8 +284,8 @@ public class AccountImageController : ControllerBase
         var textBounds = new SKRect();
         textPaint.MeasureText(text, ref textBounds);
 
-        var imageInfo = new SKImageInfo((int) ((50 + 10 + 5 + 10) * resizeFactor + textBounds.Width),
-            (int) (50 * resizeFactor));
+        var imageInfo = new SKImageInfo((int)((50 + 10 + 5 + 10) * resizeFactor + textBounds.Width),
+            (int)(50 * resizeFactor));
         var bitmap = new SKBitmap(imageInfo);
         using var canvas = new SKCanvas(bitmap);
 
