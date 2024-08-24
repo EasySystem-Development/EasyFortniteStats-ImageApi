@@ -1,3 +1,4 @@
+using AsyncKeyedLock;
 using EasyFortniteStats_ImageApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +10,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<SharedAssets>();
 builder.Services.AddHttpClient();
-builder.Services.AddSingleton<NamedLock>();
+builder.Services.AddSingleton(new AsyncKeyedLocker<string>(o =>
+{
+    o.PoolSize = 20;
+    o.PoolInitialFill = 1;
+}));
 
 var app = builder.Build();
 

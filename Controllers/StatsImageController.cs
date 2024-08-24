@@ -1,4 +1,5 @@
-﻿using EasyFortniteStats_ImageApi.Models;
+﻿using AsyncKeyedLock;
+using EasyFortniteStats_ImageApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using SkiaSharp;
@@ -11,10 +12,10 @@ namespace EasyFortniteStats_ImageApi.Controllers;
 public class StatsImageController : ControllerBase
 {
     private readonly IMemoryCache _cache;
-    private readonly NamedLock _namedLock;
+    private readonly AsyncKeyedLocker<string> _namedLock;
     private readonly SharedAssets _assets;
 
-    public StatsImageController(IMemoryCache cache, NamedLock namedLock, SharedAssets assets)
+    public StatsImageController(IMemoryCache cache, AsyncKeyedLocker<string> namedLock, SharedAssets assets)
     {
         _cache = cache;
         _namedLock = namedLock;
@@ -33,16 +34,16 @@ public class StatsImageController : ControllerBase
         var backgroundHash = stats.BackgroundImagePath is not null ? $"_{stats.BackgroundImagePath.GetHashCode()}" : "";
 
         var lockName = $"stats_{type}{backgroundHash}_template_mutex";
-        await _namedLock.WaitAsync(lockName);
-
-        _cache.TryGetValue($"stats_{type}{backgroundHash}_template_image", out SKBitmap? templateBitmap);
-        if (templateBitmap == null)
+        SKBitmap? templateBitmap;
+        using (await _namedLock.LockAsync(lockName).ConfigureAwait(false))
         {
-            templateBitmap = await GenerateTemplate(stats, type);
-            _cache.Set($"stats_{type}{backgroundHash}_template_image", templateBitmap);
+            _cache.TryGetValue($"stats_{type}{backgroundHash}_template_image", out templateBitmap);
+            if (templateBitmap == null)
+            {
+                templateBitmap = await GenerateTemplate(stats, type);
+                _cache.Set($"stats_{type}{backgroundHash}_template_image", templateBitmap);
+            }
         }
-
-        _namedLock.Release(lockName);
 
         using var templateCopy = templateBitmap.Copy();
         using var bitmap = await GenerateImage(stats, type, templateCopy);
