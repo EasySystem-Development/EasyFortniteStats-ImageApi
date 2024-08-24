@@ -23,9 +23,9 @@ public partial class ShopImageController : ControllerBase
     private const int BOTTOM_PADDING = 100;
     private const int HEADER_HEIGHT = 450;
     private const int COLUMN_SPACE = 100;
-    private const int CARDS_PER_SECTION = 5;
-    private const int CARD_WIDTH = 220;
-    private const int CARD_HEIGHT = 552;
+    private const int CARDS_PER_SECTION = 4;
+    private const int CARD_WIDTH = 256;
+    private const int CARD_HEIGHT = 408;
     private const int CARD_SHADOW_HEIGHT = 120;
     private const int CARD_SPACE = 24;
     private const int CARD_PADDING = 12;
@@ -427,7 +427,8 @@ public partial class ShopImageController : ControllerBase
             for (var j = 0; j < sections.Count; j++)
             {
                 var section = sections[j];
-                var sectionImageInfo = new SKImageInfo(SECTION_WIDTH, SECTION_HEIGHT);
+                var sectionImageInfo = new SKImageInfo(
+                    SECTION_WIDTH, SECTION_HEIGHT);
                 using var sectionBitmap = new SKBitmap(sectionImageInfo);
                 using var sectionCanvas = new SKCanvas(sectionBitmap);
 
