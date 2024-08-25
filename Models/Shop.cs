@@ -30,6 +30,7 @@ public class ShopEntry
     public string[]? BackgroundColors { get; set; }
     public string? TextBackgroundColor { get; set; }
     public string Name { get; set; }
+    public string? ImageType { get; set; }
     public string? ImageUrl { get; set; }
     public string FallbackImageUrl { get; set; }
     public bool IsSpecial { get; set; }
