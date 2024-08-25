@@ -651,10 +651,14 @@ public partial class ShopImageController : ControllerBase
             shadowPaint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
                 new SKPoint((float)imageInfo.Width / 2, (float)(imageInfo.Height * .4)),
-                [SKColors.Black.WithAlpha(255), SKColors.Black.WithAlpha(0)],
+                [
+                    SKColor.Parse(shopEntry.TextBackgroundColor).WithAlpha(255),
+                    SKColor.Parse(shopEntry.TextBackgroundColor).WithAlpha(0)
+                ],
                 [0.0f, 1.0f],
                 SKShaderTileMode.Repeat);
-            canvas.DrawRect(0, (float)(imageInfo.Height * .4), imageInfo.Width, (float)(imageInfo.Height * .6), shadowPaint);
+            canvas.DrawRect(0, (float)(imageInfo.Height * .4), imageInfo.Width, (float)(imageInfo.Height * .6),
+                shadowPaint);
         }
 
         // Draw V-Bucks icon
