@@ -148,4 +148,18 @@ public class ImageUtils
 
         return bitmap;
     }
+
+    public static SKColor ParseColor(string hexString)
+    {
+        if (hexString.StartsWith('#'))
+        {
+            hexString = hexString[1..];
+        }
+
+        if (hexString.Length == 8)
+        {
+            hexString = string.Concat(hexString.AsSpan(6, 2), hexString.AsSpan(0, 6));
+        }
+        return SKColor.Parse(hexString);
+    }
 }
