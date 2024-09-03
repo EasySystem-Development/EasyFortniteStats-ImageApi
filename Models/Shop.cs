@@ -26,9 +26,11 @@ public class ShopEntry
     public string RegularPrice { get; set; }
     public string FinalPrice { get; set; }
     public ShopEntryBanner? Banner { get; set; }
-    public string? ShadowColor { get; set; }
     public float Size { get; set; }
+    public string[]? BackgroundColors { get; set; }
+    public string? TextBackgroundColor { get; set; }
     public string Name { get; set; }
+    public string? ImageType { get; set; }
     public string? ImageUrl { get; set; }
     public string FallbackImageUrl { get; set; }
     public bool IsSpecial { get; set; }

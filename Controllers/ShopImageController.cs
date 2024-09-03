@@ -26,7 +26,6 @@ public partial class ShopImageController : ControllerBase
     private const int CARDS_PER_SECTION = 4;
     private const int CARD_WIDTH = 256;
     private const int CARD_HEIGHT = 408;
-    private const int CARD_SHADOW_HEIGHT = 120;
     private const int CARD_SPACE = 24;
     private const int CARD_PADDING = 12;
     private const int SECTION_WIDTH = CARDS_PER_SECTION * CARD_WIDTH + (CARDS_PER_SECTION - 1) * CARD_SPACE;
@@ -584,10 +583,42 @@ public partial class ShopImageController : ControllerBase
 
         using var canvas = new SKCanvas(bitmap);
 
-        // Scale image down to fit the card
-        var imageResize = Math.Max(imageInfo.Width, imageInfo.Height);
-        using var resizedImageBitmap =
-            shopEntry.Image.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
+        if (shopEntry.BackgroundColors != null)
+        {
+            using var backgroundGradientPaint = new SKPaint();
+            backgroundGradientPaint.IsAntialias = true;
+            switch (shopEntry.BackgroundColors.Length)
+            {
+                case 1:
+                    backgroundGradientPaint.Color = SKColor.Parse(shopEntry.BackgroundColors[0]);
+                    break;
+                case 2:
+                    backgroundGradientPaint.Shader = SKShader.CreateLinearGradient(
+                        new SKPoint(0, 0),
+                        new SKPoint(0, imageInfo.Height),
+                        [SKColor.Parse(shopEntry.BackgroundColors[0]), SKColor.Parse(shopEntry.BackgroundColors[1])],
+                        [0.0f, 1.0f],
+                        SKShaderTileMode.Clamp);
+                    break;
+                case 3:
+                    backgroundGradientPaint.Shader = SKShader.CreateLinearGradient(
+                        new SKPoint(0, 0),
+                        new SKPoint(0, imageInfo.Height),
+                        [
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[0]), ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[2])
+                        ],
+                        [0.0f, 0.5f, 1.0f],
+                        SKShaderTileMode.Clamp);
+                    break;
+            }
+            canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundGradientPaint);
+        } else if (shopEntry.ImageType == "track")
+        {
+            using var backgroundPaint = new SKPaint();
+            backgroundPaint.Color = SKColors.Black;
+            canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
+        }
 
         // Generate background gradient for items that come without
         if (shopEntry.ImageUrl == null)
@@ -604,27 +635,51 @@ public partial class ShopImageController : ControllerBase
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, gradientPaint);
         }
 
-        // Center image in the middle of the card, if width is bigger than the image
-        if (resizedImageBitmap.Width > imageInfo.Width)
+        // Scale image down to fit the card
+        if (shopEntry.ImageType == "track")
         {
-            var cropX = (resizedImageBitmap.Width - imageInfo.Width) / 2;
-            var cropRect = new SKRect(cropX, 0, cropX + imageInfo.Width, resizedImageBitmap.Height);
-            canvas.DrawBitmap(resizedImageBitmap, cropRect,
-                new SKRect(0, 0, imageInfo.Width, resizedImageBitmap.Height));
-        }
-        else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
+            using var coverBitmap = shopEntry.Image.Resize(new SKImageInfo(236, 236), SKFilterQuality.Medium);
 
-        if (shopEntry.ShadowColor != null)
+            using var roundedCoverBitmap = new SKBitmap(236, 236);
+            using var roundedCoverCanvas = new SKCanvas(roundedCoverBitmap);
+            roundedCoverCanvas.ClipRoundRect(new SKRoundRect(new SKRect(0, 0, coverBitmap.Width, coverBitmap.Height), 10), antialias: true);
+            roundedCoverCanvas.DrawBitmap(coverBitmap, 0, 0);
+
+            canvas.DrawBitmap(roundedCoverBitmap, 10, 10);
+        }
+        else
+        {
+            var imageResize = Math.Max(imageInfo.Width, imageInfo.Height);
+            using var resizedImageBitmap =
+                shopEntry.Image.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
+
+            // Center image in the middle of the card, if width is bigger than the image
+            if (resizedImageBitmap.Width > imageInfo.Width)
+            {
+                var cropX = (resizedImageBitmap.Width - imageInfo.Width) / 2;
+                var cropRect = new SKRect(cropX, 0, cropX + imageInfo.Width, resizedImageBitmap.Height);
+                canvas.DrawBitmap(resizedImageBitmap, cropRect,
+                    new SKRect(0, 0, imageInfo.Width, resizedImageBitmap.Height));
+            }
+            else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
+        }
+
+
+        if (shopEntry.TextBackgroundColor != null)
         {
             using var shadowPaint = new SKPaint();
             shadowPaint.IsAntialias = true;
             shadowPaint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
-                new SKPoint((float)imageInfo.Width / 2, imageInfo.Height - CARD_SHADOW_HEIGHT),
-                [SKColors.Black.WithAlpha(255), SKColors.Black.WithAlpha(0)],
+                new SKPoint((float)imageInfo.Width / 2, (float)(imageInfo.Height * .4)),
+                [
+                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(255),
+                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(0)
+                ],
                 [0.0f, 1.0f],
                 SKShaderTileMode.Repeat);
-            canvas.DrawRect(0, imageInfo.Height - CARD_SHADOW_HEIGHT, imageInfo.Width, CARD_SHADOW_HEIGHT, shadowPaint);
+            canvas.DrawRect(0, (float)(imageInfo.Height * .4), imageInfo.Width, (float)(imageInfo.Height * .6),
+                shadowPaint);
         }
 
         // Draw V-Bucks icon
