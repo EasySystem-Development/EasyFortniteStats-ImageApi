@@ -636,14 +636,16 @@ public partial class ShopImageController : ControllerBase
         }
 
         // Scale image down to fit the card
-        if (shopEntry.ImageType == "jamtrack")
+        if (shopEntry.ImageType == "track")
         {
             using var coverBitmap = shopEntry.Image.Resize(new SKImageInfo(236, 236), SKFilterQuality.Medium);
 
-            using var coverCanvas = new SKCanvas(coverBitmap);
-            coverCanvas.ClipRoundRect(new SKRoundRect(new SKRect(0, 0, coverBitmap.Width, coverBitmap.Height), 10), antialias: true);
+            using var roundedCoverBitmap = new SKBitmap(236, 236);
+            using var roundedCoverCanvas = new SKCanvas(roundedCoverBitmap);
+            roundedCoverCanvas.ClipRoundRect(new SKRoundRect(new SKRect(0, 0, coverBitmap.Width, coverBitmap.Height), 10), antialias: true);
+            roundedCoverCanvas.DrawBitmap(coverBitmap, 0, 0);
 
-            canvas.DrawBitmap(coverBitmap, 10, 10);
+            canvas.DrawBitmap(roundedCoverBitmap, 10, 10);
         }
         else
         {
