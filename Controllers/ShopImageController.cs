@@ -612,6 +612,12 @@ public partial class ShopImageController : ControllerBase
                         SKShaderTileMode.Clamp);
                     break;
             }
+            canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundGradientPaint);
+        } else if (shopEntry.ImageType == "track")
+        {
+            using var backgroundPaint = new SKPaint();
+            backgroundPaint.Color = SKColors.Black;
+            canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
         }
 
         // Generate background gradient for items that come without
