@@ -605,8 +605,8 @@ public partial class ShopImageController : ControllerBase
                         new SKPoint(0, 0),
                         new SKPoint(0, imageInfo.Height),
                         [
-                            SKColor.Parse(shopEntry.BackgroundColors[0]), SKColor.Parse(shopEntry.BackgroundColors[1]),
-                            SKColor.Parse(shopEntry.BackgroundColors[2])
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[0]), ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[2])
                         ],
                         [0.0f, 0.5f, 1.0f],
                         SKShaderTileMode.Clamp);
@@ -665,8 +665,8 @@ public partial class ShopImageController : ControllerBase
                 new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
                 new SKPoint((float)imageInfo.Width / 2, (float)(imageInfo.Height * .4)),
                 [
-                    SKColor.Parse(shopEntry.TextBackgroundColor).WithAlpha(255),
-                    SKColor.Parse(shopEntry.TextBackgroundColor).WithAlpha(0)
+                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(255),
+                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(0)
                 ],
                 [0.0f, 1.0f],
                 SKShaderTileMode.Repeat);
