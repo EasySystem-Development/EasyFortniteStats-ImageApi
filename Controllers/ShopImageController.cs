@@ -605,7 +605,8 @@ public partial class ShopImageController : ControllerBase
                         new SKPoint(0, 0),
                         new SKPoint(0, imageInfo.Height),
                         [
-                            ImageUtils.ParseColor(shopEntry.BackgroundColors[0]), ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[0]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
                             ImageUtils.ParseColor(shopEntry.BackgroundColors[2])
                         ],
                         [0.0f, 0.5f, 1.0f],
@@ -613,7 +614,8 @@ public partial class ShopImageController : ControllerBase
                     break;
             }
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundGradientPaint);
-        } else if (shopEntry.ImageType == "track")
+        }
+        else if (shopEntry.ImageType == "track")
         {
             using var backgroundPaint = new SKPaint();
             backgroundPaint.Color = SKColors.Black;
@@ -640,7 +642,8 @@ public partial class ShopImageController : ControllerBase
 
             using var roundedCoverBitmap = new SKBitmap(236, 236);
             using var roundedCoverCanvas = new SKCanvas(roundedCoverBitmap);
-            roundedCoverCanvas.ClipRoundRect(new SKRoundRect(new SKRect(0, 0, coverBitmap.Width, coverBitmap.Height), 10), antialias: true);
+            roundedCoverCanvas.ClipRoundRect(
+                new SKRoundRect(new SKRect(0, 0, coverBitmap.Width, coverBitmap.Height), 10), antialias: true);
             roundedCoverCanvas.DrawBitmap(coverBitmap, 0, 0);
 
             canvas.DrawBitmap(roundedCoverBitmap, 10, 10);
