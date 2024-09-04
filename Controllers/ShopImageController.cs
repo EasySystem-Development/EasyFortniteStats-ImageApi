@@ -605,7 +605,8 @@ public partial class ShopImageController : ControllerBase
                         new SKPoint(0, 0),
                         new SKPoint(0, imageInfo.Height),
                         [
-                            ImageUtils.ParseColor(shopEntry.BackgroundColors[0]), ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[0]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
                             ImageUtils.ParseColor(shopEntry.BackgroundColors[2])
                         ],
                         [0.0f, 0.5f, 1.0f],
@@ -613,15 +614,14 @@ public partial class ShopImageController : ControllerBase
                     break;
             }
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundGradientPaint);
-        } else if (shopEntry.ImageType == "track")
+        }
+        else if (shopEntry.ImageType == "track")
         {
             using var backgroundPaint = new SKPaint();
             backgroundPaint.Color = SKColors.Black;
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
         }
-
-        // Generate background gradient for items that come without
-        if (shopEntry.ImageUrl == null)
+        else if (shopEntry.ImageUrl == null)
         {
             // Draw radial gradient and paste resizedImageBitmap on it
             using var gradientPaint = new SKPaint();
@@ -642,19 +642,41 @@ public partial class ShopImageController : ControllerBase
 
             using var roundedCoverBitmap = new SKBitmap(236, 236);
             using var roundedCoverCanvas = new SKCanvas(roundedCoverBitmap);
-            roundedCoverCanvas.ClipRoundRect(new SKRoundRect(new SKRect(0, 0, coverBitmap.Width, coverBitmap.Height), 10), antialias: true);
+            roundedCoverCanvas.ClipRoundRect(
+                new SKRoundRect(new SKRect(0, 0, coverBitmap.Width, coverBitmap.Height), 10), antialias: true);
             roundedCoverCanvas.DrawBitmap(coverBitmap, 0, 0);
 
             canvas.DrawBitmap(roundedCoverBitmap, 10, 10);
         }
         else
         {
-            var imageResize = Math.Max(imageInfo.Width, imageInfo.Height);
-            using var resizedImageBitmap =
-                shopEntry.Image.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
+            int resizeWidth, resizeHeight;
+            var aspectRatio = (float)shopEntry.Image.Width / shopEntry.Image.Height;
 
+            if (imageInfo.Width > imageInfo.Height)
+            {
+                resizeWidth = imageInfo.Width;
+                resizeHeight = (int)(imageInfo.Width / aspectRatio);
+            }
+            else
+            {
+                resizeWidth = (int)(imageInfo.Height * aspectRatio);
+                resizeHeight = imageInfo.Height;
+            }
+
+            using var resizedImageBitmap =
+                shopEntry.Image.Resize(new SKImageInfo(resizeWidth, resizeHeight), SKFilterQuality.Medium);
+
+            // Car bundles get centered in the middle of the card vertically
+            if (shopEntry.ImageType == "car-bundle")
+            {
+                var cropY = (resizedImageBitmap.Height - imageInfo.Height) / 2;
+                var cropRect = new SKRect(0, cropY, resizedImageBitmap.Width, cropY + imageInfo.Height);
+                canvas.DrawBitmap(resizedImageBitmap, cropRect,
+                    new SKRect(0, 0, resizedImageBitmap.Width, imageInfo.Height));
+            }
             // Center image in the middle of the card, if width is bigger than the image
-            if (resizedImageBitmap.Width > imageInfo.Width)
+            else if (resizedImageBitmap.Width > imageInfo.Width)
             {
                 var cropX = (resizedImageBitmap.Width - imageInfo.Width) / 2;
                 var cropRect = new SKRect(cropX, 0, cropX + imageInfo.Width, resizedImageBitmap.Height);
