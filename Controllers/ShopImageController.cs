@@ -649,9 +649,22 @@ public partial class ShopImageController : ControllerBase
         }
         else
         {
-            var imageResize = Math.Max(imageInfo.Width, imageInfo.Height);
+            int resizeWidth, resizeHeight;
+            var aspectRatio = (float)shopEntry.Image.Width / shopEntry.Image.Height;
+
+            if (imageInfo.Width > imageInfo.Height)
+            {
+                resizeWidth = imageInfo.Width;
+                resizeHeight = (int)(imageInfo.Width / aspectRatio);
+            }
+            else
+            {
+                resizeWidth = (int)(imageInfo.Height * aspectRatio);
+                resizeHeight = imageInfo.Height;
+            }
+
             using var resizedImageBitmap =
-                shopEntry.Image.Resize(new SKImageInfo(imageResize, imageResize), SKFilterQuality.Medium);
+                shopEntry.Image.Resize(new SKImageInfo(resizeWidth, resizeHeight), SKFilterQuality.Medium);
 
             // Center image in the middle of the card, if width is bigger than the image
             if (resizedImageBitmap.Width > imageInfo.Width)
