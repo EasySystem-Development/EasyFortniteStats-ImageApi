@@ -664,8 +664,16 @@ public partial class ShopImageController : ControllerBase
             using var resizedImageBitmap =
                 shopEntry.Image.Resize(new SKImageInfo(resizeWidth, resizeHeight), SKFilterQuality.Medium);
 
+            // Car bundles get centered in the middle of the card vertically
+            if (shopEntry.ImageType == "car-bundle")
+            {
+                var cropY = (resizedImageBitmap.Height - imageInfo.Height) / 2;
+                var cropRect = new SKRect(0, cropY, resizedImageBitmap.Width, cropY + imageInfo.Height);
+                canvas.DrawBitmap(resizedImageBitmap, cropRect,
+                    new SKRect(0, 0, resizedImageBitmap.Width, imageInfo.Height));
+            }
             // Center image in the middle of the card, if width is bigger than the image
-            if (resizedImageBitmap.Width > imageInfo.Width)
+            else if (resizedImageBitmap.Width > imageInfo.Width)
             {
                 var cropX = (resizedImageBitmap.Width - imageInfo.Width) / 2;
                 var cropRect = new SKRect(cropX, 0, cropX + imageInfo.Width, resizedImageBitmap.Height);
