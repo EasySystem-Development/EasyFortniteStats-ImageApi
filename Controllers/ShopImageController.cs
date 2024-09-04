@@ -619,9 +619,7 @@ public partial class ShopImageController : ControllerBase
             backgroundPaint.Color = SKColors.Black;
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
         }
-
-        // Generate background gradient for items that come without
-        if (shopEntry.ImageUrl == null)
+        else if (shopEntry.ImageUrl == null)
         {
             // Draw radial gradient and paste resizedImageBitmap on it
             using var gradientPaint = new SKPaint();
