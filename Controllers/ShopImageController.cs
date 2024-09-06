@@ -606,8 +606,8 @@ public partial class ShopImageController : ControllerBase
                         new SKPoint(0, imageInfo.Height),
                         [
                             ImageUtils.ParseColor(shopEntry.BackgroundColors[0]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[2]), // maybe fix this order in payload?
                             ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
-                            ImageUtils.ParseColor(shopEntry.BackgroundColors[2])
                         ],
                         [0.0f, 0.5f, 1.0f],
                         SKShaderTileMode.Clamp);
