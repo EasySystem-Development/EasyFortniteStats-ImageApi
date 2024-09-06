@@ -209,6 +209,7 @@ public partial class ShopImageController : ControllerBase
         {
             using var paint = new SKPaint();
             paint.IsAntialias = true;
+            paint.IsDither = true;
             paint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint((float)imageInfo.Width / 2, 0),
                 new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
@@ -587,6 +588,7 @@ public partial class ShopImageController : ControllerBase
         {
             using var backgroundGradientPaint = new SKPaint();
             backgroundGradientPaint.IsAntialias = true;
+            backgroundGradientPaint.IsDither = true;
             switch (shopEntry.BackgroundColors.Length)
             {
                 case 1:
@@ -691,6 +693,7 @@ public partial class ShopImageController : ControllerBase
         {
             using var shadowPaint = new SKPaint();
             shadowPaint.IsAntialias = true;
+            shadowPaint.IsDither = true;
             shadowPaint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
                 new SKPoint((float)imageInfo.Width / 2, (float)(imageInfo.Height * .4)),
