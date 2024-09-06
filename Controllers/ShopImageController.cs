@@ -620,7 +620,7 @@ public partial class ShopImageController : ControllerBase
         else if (shopEntry.ImageType == "track")
         {
             using var backgroundPaint = new SKPaint();
-            backgroundPaint.Color = SKColors.Black.WithAlpha(90 /* 35% */);
+            backgroundPaint.Color = SKColors.Black.WithAlpha((int)(.35 * 255));
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
         }
         else if (shopEntry.ImageUrl == null)
@@ -688,23 +688,8 @@ public partial class ShopImageController : ControllerBase
             else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
         }
 
-        if (shopEntry.ImageType == "track")
-        {
-            using var shadowPaint = new SKPaint();
-            shadowPaint.IsAntialias = true;
-            shadowPaint.IsDither = true;
-            shadowPaint.Shader = SKShader.CreateLinearGradient(
-                new SKPoint(imageInfo.Width / 2f, imageInfo.Height),
-                new SKPoint(imageInfo.Width / 2f, imageInfo.Height * .6f),
-                [
-                    SKColors.Black.WithAlpha(204 /* 80% */),
-                    SKColors.Black.WithAlpha(0)
-                ],
-                [0.0f, 1.0f],
-                SKShaderTileMode.Clamp);
-            canvas.DrawRect(imageInfo.Rect, shadowPaint);
-        }
-        else if (shopEntry.TextBackgroundColor != null)
+
+        if (shopEntry.TextBackgroundColor != null)
         {
             var textBackgroundColor = ImageUtils.ParseColor(shopEntry.TextBackgroundColor);
             using var shadowPaint = new SKPaint();
@@ -716,6 +701,22 @@ public partial class ShopImageController : ControllerBase
                 [
                     textBackgroundColor,
                     textBackgroundColor.WithAlpha(0)
+                ],
+                [0.0f, 1.0f],
+                SKShaderTileMode.Clamp);
+            canvas.DrawRect(imageInfo.Rect, shadowPaint);
+        }
+        else if (shopEntry.ImageType == "track")
+        {
+            using var shadowPaint = new SKPaint();
+            shadowPaint.IsAntialias = true;
+            shadowPaint.IsDither = true;
+            shadowPaint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height),
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height * .6f),
+                [
+                    SKColors.Black.WithAlpha((int)(.8 * 255)),
+                    SKColors.Black.WithAlpha(0)
                 ],
                 [0.0f, 1.0f],
                 SKShaderTileMode.Clamp);
@@ -735,7 +736,7 @@ public partial class ShopImageController : ControllerBase
             paint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite-74Regular.otf");
             paint.TextAlign = SKTextAlign.Right;
 
-            canvas.DrawText("+", imageInfo.Width - 13, imageInfo.Height - paint.FontMetrics.Descent + 3, paint);
+            canvas.DrawText("+", imageInfo.Width - 18, imageInfo.Height - paint.FontMetrics.Descent + 3, paint);
         }
 
         return bitmap;
