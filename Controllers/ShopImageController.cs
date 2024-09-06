@@ -717,7 +717,7 @@ public partial class ShopImageController : ControllerBase
             paint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite-74Regular.otf");
             paint.TextAlign = SKTextAlign.Right;
 
-            canvas.DrawText("+", imageInfo.Width - 18, imageInfo.Height - paint.FontMetrics.Descent + 3, paint);
+            canvas.DrawText("+", imageInfo.Width - 13, imageInfo.Height - paint.FontMetrics.Descent + 3, paint);
         }
 
         return bitmap;
