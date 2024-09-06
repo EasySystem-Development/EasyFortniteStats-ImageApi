@@ -618,7 +618,7 @@ public partial class ShopImageController : ControllerBase
         else if (shopEntry.ImageType == "track")
         {
             using var backgroundPaint = new SKPaint();
-            backgroundPaint.Color = SKColors.Black;
+            backgroundPaint.Color = SKColors.Black.WithAlpha(90 /* 35% */);
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
         }
         else if (shopEntry.ImageUrl == null)
