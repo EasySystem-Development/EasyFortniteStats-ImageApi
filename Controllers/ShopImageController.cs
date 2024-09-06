@@ -688,23 +688,38 @@ public partial class ShopImageController : ControllerBase
             else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
         }
 
-
-        if (shopEntry.TextBackgroundColor != null)
+        if (shopEntry.ImageType == "track")
         {
             using var shadowPaint = new SKPaint();
             shadowPaint.IsAntialias = true;
             shadowPaint.IsDither = true;
             shadowPaint.Shader = SKShader.CreateLinearGradient(
-                new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
-                new SKPoint((float)imageInfo.Width / 2, (float)(imageInfo.Height * .4)),
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height),
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height * .6f),
                 [
-                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(255),
-                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(0)
+                    SKColors.Black.WithAlpha(204 /* 80% */),
+                    SKColors.Black.WithAlpha(0)
                 ],
                 [0.0f, 1.0f],
-                SKShaderTileMode.Repeat);
-            canvas.DrawRect(0, (float)(imageInfo.Height * .4), imageInfo.Width, (float)(imageInfo.Height * .6),
-                shadowPaint);
+                SKShaderTileMode.Clamp);
+            canvas.DrawRect(imageInfo.Rect, shadowPaint);
+        }
+        else if (shopEntry.TextBackgroundColor != null)
+        {
+            var textBackgroundColor = ImageUtils.ParseColor(shopEntry.TextBackgroundColor);
+            using var shadowPaint = new SKPaint();
+            shadowPaint.IsAntialias = true;
+            shadowPaint.IsDither = true;
+            shadowPaint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height),
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height * .7f),
+                [
+                    textBackgroundColor,
+                    textBackgroundColor.WithAlpha(0)
+                ],
+                [0.0f, 1.0f],
+                SKShaderTileMode.Clamp);
+            canvas.DrawRect(imageInfo.Rect, shadowPaint);
         }
 
         // Draw V-Bucks icon
