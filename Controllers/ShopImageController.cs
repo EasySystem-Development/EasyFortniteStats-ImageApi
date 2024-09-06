@@ -209,6 +209,7 @@ public partial class ShopImageController : ControllerBase
         {
             using var paint = new SKPaint();
             paint.IsAntialias = true;
+            paint.IsDither = true;
             paint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint((float)imageInfo.Width / 2, 0),
                 new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
@@ -587,6 +588,7 @@ public partial class ShopImageController : ControllerBase
         {
             using var backgroundGradientPaint = new SKPaint();
             backgroundGradientPaint.IsAntialias = true;
+            backgroundGradientPaint.IsDither = true;
             switch (shopEntry.BackgroundColors.Length)
             {
                 case 1:
@@ -606,8 +608,8 @@ public partial class ShopImageController : ControllerBase
                         new SKPoint(0, imageInfo.Height),
                         [
                             ImageUtils.ParseColor(shopEntry.BackgroundColors[0]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[2]), // maybe fix this order in payload?
                             ImageUtils.ParseColor(shopEntry.BackgroundColors[1]),
-                            ImageUtils.ParseColor(shopEntry.BackgroundColors[2])
                         ],
                         [0.0f, 0.5f, 1.0f],
                         SKShaderTileMode.Clamp);
@@ -618,7 +620,7 @@ public partial class ShopImageController : ControllerBase
         else if (shopEntry.ImageType == "track")
         {
             using var backgroundPaint = new SKPaint();
-            backgroundPaint.Color = SKColors.Black;
+            backgroundPaint.Color = SKColors.Black.WithAlpha((int)(.35 * 255));
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
         }
         else if (shopEntry.ImageUrl == null)
@@ -689,19 +691,36 @@ public partial class ShopImageController : ControllerBase
 
         if (shopEntry.TextBackgroundColor != null)
         {
+            var textBackgroundColor = ImageUtils.ParseColor(shopEntry.TextBackgroundColor);
             using var shadowPaint = new SKPaint();
             shadowPaint.IsAntialias = true;
+            shadowPaint.IsDither = true;
             shadowPaint.Shader = SKShader.CreateLinearGradient(
-                new SKPoint((float)imageInfo.Width / 2, imageInfo.Height),
-                new SKPoint((float)imageInfo.Width / 2, (float)(imageInfo.Height * .4)),
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height),
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height * .7f),
                 [
-                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(255),
-                    ImageUtils.ParseColor(shopEntry.TextBackgroundColor).WithAlpha(0)
+                    textBackgroundColor,
+                    textBackgroundColor.WithAlpha(0)
                 ],
                 [0.0f, 1.0f],
-                SKShaderTileMode.Repeat);
-            canvas.DrawRect(0, (float)(imageInfo.Height * .4), imageInfo.Width, (float)(imageInfo.Height * .6),
-                shadowPaint);
+                SKShaderTileMode.Clamp);
+            canvas.DrawRect(imageInfo.Rect, shadowPaint);
+        }
+        else if (shopEntry.ImageType == "track")
+        {
+            using var shadowPaint = new SKPaint();
+            shadowPaint.IsAntialias = true;
+            shadowPaint.IsDither = true;
+            shadowPaint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height),
+                new SKPoint(imageInfo.Width / 2f, imageInfo.Height * .6f),
+                [
+                    SKColors.Black.WithAlpha((int)(.8 * 255)),
+                    SKColors.Black.WithAlpha(0)
+                ],
+                [0.0f, 1.0f],
+                SKShaderTileMode.Clamp);
+            canvas.DrawRect(imageInfo.Rect, shadowPaint);
         }
 
         // Draw V-Bucks icon
