@@ -7,7 +7,7 @@ public class Shop
 {
     public string Date { get; set; }
     public string Title { get; set; }
-    public string CreatorCodeTitle { get; set; }
+    public string? CreatorCodeTitle { get; set; }
     public string? CreatorCode { get; set; }
     public string? BackgroundImagePath { get; set; }
     public ShopSection[] Sections { get; set; } 

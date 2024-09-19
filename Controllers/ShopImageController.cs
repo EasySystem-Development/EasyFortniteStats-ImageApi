@@ -592,13 +592,16 @@ public partial class ShopImageController : ControllerBase
             switch (shopEntry.BackgroundColors.Length)
             {
                 case 1:
-                    backgroundGradientPaint.Color = SKColor.Parse(shopEntry.BackgroundColors[0]);
+                    backgroundGradientPaint.Color = ImageUtils.ParseColor(shopEntry.BackgroundColors[0]);
                     break;
                 case 2:
                     backgroundGradientPaint.Shader = SKShader.CreateLinearGradient(
                         new SKPoint(0, 0),
                         new SKPoint(0, imageInfo.Height),
-                        [SKColor.Parse(shopEntry.BackgroundColors[0]), SKColor.Parse(shopEntry.BackgroundColors[1])],
+                        [
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[0]),
+                            ImageUtils.ParseColor(shopEntry.BackgroundColors[1])
+                        ],
                         [0.0f, 1.0f],
                         SKShaderTileMode.Clamp);
                     break;
@@ -620,7 +623,7 @@ public partial class ShopImageController : ControllerBase
         else if (shopEntry.ImageType == "track")
         {
             using var backgroundPaint = new SKPaint();
-            backgroundPaint.Color = SKColors.Black.WithAlpha((int)(.35 * 255));
+            backgroundPaint.Color = SKColors.Black.WithAlpha((int)(.3f * 255));
             canvas.DrawRect(0, 0, imageInfo.Width, imageInfo.Height, backgroundPaint);
         }
         else if (shopEntry.ImageUrl == null)
@@ -653,7 +656,7 @@ public partial class ShopImageController : ControllerBase
         else
         {
             int resizeWidth, resizeHeight;
-            var aspectRatio = (float)shopEntry.Image.Width / shopEntry.Image.Height;
+            var aspectRatio = (float)shopEntry.Image.Width / (float)shopEntry.Image.Height;
 
             if (imageInfo.Width > imageInfo.Height)
             {
@@ -685,7 +688,11 @@ public partial class ShopImageController : ControllerBase
                 canvas.DrawBitmap(resizedImageBitmap, cropRect,
                     new SKRect(0, 0, imageInfo.Width, resizedImageBitmap.Height));
             }
-            else canvas.DrawBitmap(resizedImageBitmap, SKPoint.Empty);
+            else
+            {
+                var offsetMulti = shopEntry.Size >= 3f ? 0.08f : 0f;
+                canvas.DrawBitmap(resizedImageBitmap, new SKPoint(0, resizedImageBitmap.Height * -offsetMulti));
+            }
         }
 
 
