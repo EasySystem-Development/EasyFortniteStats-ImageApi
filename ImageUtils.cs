@@ -151,14 +151,12 @@ public class ImageUtils
 
     public static SKColor ParseColor(string hexString)
     {
-        if (hexString.StartsWith('#'))
-        {
-            hexString = hexString[1..];
-        }
+        var span = hexString.AsSpan();
+        var offset = span[0] == '#' ? 1 : 0;
 
-        if (hexString.Length == 8)
+        if (hexString.Length - offset == 8)
         {
-            hexString = string.Concat(hexString.AsSpan(6, 2), hexString.AsSpan(0, 6));
+            hexString = string.Concat(span.Slice(6 + offset, 2), span.Slice(0 + offset, 6));
         }
         return SKColor.Parse(hexString);
     }
