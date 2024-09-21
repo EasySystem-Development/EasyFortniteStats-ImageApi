@@ -641,7 +641,7 @@ public partial class ShopImageController : ControllerBase
         }
 
         // Scale image down to fit the card
-        if (shopEntry.ImageType == "track")
+        if (shopEntry.ImageType == "track" && shopEntry.ImageUrl == null)
         {
             using var coverBitmap = shopEntry.Image.Resize(new SKImageInfo(236, 236), SKFilterQuality.Medium);
 
