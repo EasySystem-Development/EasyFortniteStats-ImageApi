@@ -145,7 +145,7 @@ public class AccountImageController : ControllerBase
         {
             var filePath = Path.Combine(BASE_ITEM_IMAGE_PATH, $"{item.Id}.png");
             SKBitmap? itemImage = null;
-            if (!System.IO.File.Exists(filePath))
+            if (!System.IO.File.Exists(filePath) && item.ImageUrl is not null)
             {
                 using var client = _clientFactory.CreateClient();
                 byte[]? itemImageBytes;
@@ -193,7 +193,7 @@ public class AccountImageController : ControllerBase
                     data.SaveTo(fileStream);
                 }
             }
-            else
+            else if (System.IO.File.Exists(filePath))
             {
                 itemImage = SKBitmap.Decode(filePath);
             }
@@ -213,7 +213,25 @@ public class AccountImageController : ControllerBase
             await _assets.GetBitmap($"Assets/Images/Locker/RarityBackgrounds/{lockerItem.Rarity}.png");
         canvas.DrawBitmap(rarityBackground, SKPoint.Empty);
 
-        if (itemImage is not null) canvas.DrawBitmap(itemImage, SKPoint.Empty);
+        if (itemImage is not null)
+        {
+            canvas.DrawBitmap(itemImage, SKPoint.Empty);
+        }
+        else
+        {
+            using var questionmarkPaint = new SKPaint();
+            questionmarkPaint.IsAntialias = true;
+            questionmarkPaint.Color = SKColors.White;
+            questionmarkPaint.Typeface = await _assets.GetFont("Assets/Fonts/Fortnite-86Bold.otf");
+            questionmarkPaint.TextSize = 256.0f;
+            questionmarkPaint.TextAlign = SKTextAlign.Center;
+            
+            var questionmarkTextBounds = new SKRect();
+            questionmarkPaint.MeasureText("?", ref questionmarkTextBounds);
+            
+            canvas.DrawText("?", (float)bitmap.Width / 2, (float)bitmap.Height / 2 + questionmarkTextBounds.Height / 2,
+                questionmarkPaint);
+        }
 
         var typeIcon = lockerItem.SourceType != SourceType.Other
             ? await _assets.GetBitmap($"Assets/Images/Locker/Source/{lockerItem.SourceType}.png")
