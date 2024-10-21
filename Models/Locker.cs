@@ -20,7 +20,7 @@ public class LockerItem
     public string Description { get; set; }
     public string Rarity { get; set; }
     public string RarityColor { get; set; }
-    public string ImageUrl { get; set; }
+    public string? ImageUrl { get; set; }
     public SourceType SourceType { get; set; }
     public string Source { get; set; }
 
