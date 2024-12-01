@@ -35,7 +35,7 @@ public class AccountImageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post(Locker locker)
+    public async Task<IActionResult> Post(Locker locker, [FromQuery] bool? lossless)
     {
         Console.WriteLine(
             $"Locker image request | Name = {locker.PlayerName} | Locale = {locker.Locale} | Items = {locker.Items.Length}");
@@ -48,7 +48,7 @@ public class AccountImageController : ControllerBase
         using var lockerBitmap = await GenerateImage(locker);
 
         // Determine the quality of the image based on quality mapping and locker.Items.Length
-        var quality = QualityMapping.FirstOrDefault(x => locker.Items.Length >= x.Count).Quality;
+        var quality = lossless == true ? 100 : QualityMapping.FirstOrDefault(x => locker.Items.Length >= x.Count).Quality;
         return File(lockerBitmap.Encode(SKEncodedImageFormat.Jpeg, quality).AsStream(true), "image/jpeg");
     }
 

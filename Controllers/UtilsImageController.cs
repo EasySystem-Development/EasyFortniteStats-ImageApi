@@ -103,12 +103,12 @@ public class UtilsImageController : ControllerBase
             await _assets.GetBitmap(
                 $"Assets/Images/Map/Markers/{RandomNumberGenerator.GetInt32(markerAmount - 1)}.png"); // don't dispose
 
-        const int worldRadius = 150000;
-        const int xOffset = 0;
-        const int yOffset = 30;
+        const int worldRadius = 150_000;
+        const int xOffset = -60;
+        const int yOffset = 0;
 
-        var mx = ((float) drop.Y + worldRadius) / (worldRadius * 2) * bitmap.Width + xOffset;
-        var my = (1 - ((float) drop.X + worldRadius) / (worldRadius * 2)) * bitmap.Height + yOffset;
+        var mx = (drop.X + worldRadius) / (worldRadius * 2f) * bitmap.Width + xOffset;
+        var my = (drop.Y + worldRadius) / (worldRadius * 2f) * bitmap.Height + yOffset;
 
         canvas.DrawBitmap(markerBitmap, mx - (float) markerBitmap!.Width / 2, my - markerBitmap.Height);
 
