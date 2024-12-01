@@ -37,4 +37,4 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
-          args: "Docker image easyfnstats-image:${{ env.DOCKER_TAG }} built and pushed to DockerHub" 
+          args: "Docker image `luc1412/easyfnstats-image:${{ env.DOCKER_TAG }}` built and pushed to DockerHub" 
