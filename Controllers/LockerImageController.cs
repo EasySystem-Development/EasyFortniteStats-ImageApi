@@ -19,11 +19,12 @@ public class AccountImageController : ControllerBase
 
     private static readonly IReadOnlyList<(int Count, int Quality)> QualityMapping = new List<(int, int)>
     {
-        (500, 85),
-        (400, 90),
-        (300, 95),
-        //(200, 100),
-        (0, 100),
+        (150, 100),
+        (225, 95),
+        (300, 90),
+        (375, 85),
+        (425, 80),
+        (500, 75),
     };
 
     public AccountImageController(IHttpClientFactory clientFactory, AsyncKeyedLocker<string> namedLock,
@@ -48,7 +49,7 @@ public class AccountImageController : ControllerBase
         using var lockerBitmap = await GenerateImage(locker);
 
         // Determine the quality of the image based on quality mapping and locker.Items.Length
-        var quality = lossless == true ? 100 : QualityMapping.FirstOrDefault(x => locker.Items.Length >= x.Count).Quality;
+        var quality = lossless == true ? 100 : QualityMapping.FirstOrDefault(x => locker.Items.Length <= x.Count).Quality;
         return File(lockerBitmap.Encode(SKEncodedImageFormat.Jpeg, quality).AsStream(true), "image/jpeg");
     }
 
